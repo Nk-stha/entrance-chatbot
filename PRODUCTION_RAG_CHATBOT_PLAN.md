@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a modular, production-ready AI chatbot that ingests knowledge from **backend APIs** (no scraping), stores embeddings in **ChromaDB**, and generates answers via **Ollama (qwen2.5:7b)** with full RAG pipeline. The system uses **async FastAPI**, **Redis** session memory, **SSE streaming**, and a **Next.js + Tailwind + shadcn/ui** frontend — all orchestrated with **Docker Compose**.
+Build a modular, production-ready AI chatbot backend that ingests knowledge from **backend APIs** (no scraping), stores embeddings in **ChromaDB**, and generates answers via **Ollama (qwen2.5:7b)** with a full RAG pipeline. The system uses **async FastAPI**, **Redis** session memory, **SSE streaming**, and exposes clean chatbot APIs for your **existing frontend** to consume — all orchestrated with **Docker Compose**.
 
 This plan follows modern 2026 RAG practices:
 
@@ -13,6 +13,7 @@ This plan follows modern 2026 RAG practices:
 - **Precomputed embeddings** outside ChromaDB to avoid ingestion bottlenecks.
 - **Async SSE token streaming** from FastAPI using Ollama's async streaming client.
 - **Clean layer separation** between embedding compute, Chroma storage, and generation orchestration.
+- **Spring Boot list APIs** documented in [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/RAG_KNOWLEDGE_SOURCE_APIS.md) as the authoritative knowledge source.
 
 ---
 
@@ -116,8 +117,8 @@ The system should strictly separate:
 
 ```mermaid
 graph TB
-    subgraph Frontend["Frontend (Next.js)"]
-        UI[Chat Widget] --> SSE[SSE Stream Client]
+    subgraph Frontend["Existing Frontend"]
+        UI[Your Chat UI] --> SSE[SSE / API Client]
     end
 
     subgraph API["FastAPI Backend"]
@@ -169,7 +170,7 @@ User Question → Session Memory → Query Reformulation (QR-RAG) → Hybrid Ret
 ### Async SSE Streaming Flow
 
 ```
-FastAPI /chat/stream → Retrieve context from ChromaDB → Build grounded prompt → Ollama AsyncClient stream=True → Yield SSE token events → Frontend renders tokens live
+FastAPI /chat/stream → Retrieve context from ChromaDB → Build grounded prompt → Ollama AsyncClient stream=True → Yield SSE token events → Existing frontend renders tokens live
 ```
 
 ---
@@ -245,45 +246,14 @@ entrance-chatbot/
 │       ├── test_generation.py
 │       └── test_api.py
 │
-├── frontend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── next.config.ts
-│   ├── tailwind.config.ts
-│   ├── tsconfig.json
-│   ├── components.json                # shadcn/ui config
-│   │
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx
-│   │   │   └── globals.css
-│   │   │
-│   │   ├── components/
-│   │   │   ├── chat/
-│   │   │   │   ├── ChatWidget.tsx     # Main chat container
-│   │   │   │   ├── MessageList.tsx    # Message display with citations
-│   │   │   │   ├── MessageBubble.tsx  # Individual message rendering
-│   │   │   │   ├── InputBar.tsx       # Input with send button
-│   │   │   │   ├── TypingIndicator.tsx
-│   │   │   │   └── SourceCard.tsx     # Citation source display
-│   │   │   └── ui/                    # shadcn/ui components
-│   │   │
-│   │   ├── hooks/
-│   │   │   ├── useChat.ts            # Chat state + SSE streaming
-│   │   │   └── useAutoScroll.ts
-│   │   │
-│   │   ├── lib/
-│   │   │   ├── api.ts                # Backend API client
-│   │   │   └── utils.ts
-│   │   │
-│   │   └── types/
-│   │       └── chat.ts               # TypeScript types
-│   │
-│   └── public/
+├── docs/
+│   ├── api.md                         # Chatbot API documentation for your existing frontend
+│   ├── frontend-integration.md        # SSE/event contract and examples
+│   └── postman_collection.json        # Optional API testing collection
 │
-└── docs/
-    └── api.md                         # API documentation
+├── RAG_KNOWLEDGE_SOURCE_APIS.md       # Spring API inventory used for RAG ingestion
+├── RAG_CHATBOT_IMPLEMENTATION_PHASES.md
+└── PRODUCTION_RAG_CHATBOT_PLAN.md
 ```
 
 ---
@@ -294,10 +264,9 @@ entrance-chatbot/
 
 #### [NEW] docker-compose.yml
 
-Docker Compose orchestrating 5 services:
+Docker Compose orchestrating 4 core backend services:
 
 - **backend** — FastAPI app (port 8000)
-- **frontend** — Next.js app (port 3000)
 - **chromadb** — ChromaDB server (port 8001)
 - **redis** — Redis 7 (port 6379)
 - **ollama** — Ollama with qwen2.5:7b (port 11434)
@@ -327,9 +296,11 @@ SESSION_TTL_SECONDS=3600
 
 # Security
 API_KEY=your-admin-api-key
+CHATBOT_BACKEND_JWT=your-service-account-jwt
 CORS_ORIGINS=http://localhost:3000
 RATE_LIMIT_REQUESTS=30
 RATE_LIMIT_WINDOW=60
+WEBHOOK_SECRET=your-java-backend-webhook-secret
 
 # App
 LOG_LEVEL=INFO
@@ -403,8 +374,11 @@ class BackendAPIClient:
 ```
 
 - Uses `httpx.AsyncClient` with connection pooling
+- Uses the endpoint inventory in `RAG_KNOWLEDGE_SOURCE_APIS.md`
+- Supports `ApiResponse → data.content[]`, direct Spring `Page → content[]`, direct list, and `ApiResponse.data` list/object shapes
 - Retry logic via `@with_retry` decorator
-- Pagination support for large datasets
+- Pagination support for Spring list endpoints
+- Uses `CHATBOT_BACKEND_JWT` as a service-account bearer token for protected Spring APIs
 - Returns normalized `RawDocument` objects
 
 #### [NEW] backend/ingestion/normalizer.py
@@ -464,8 +438,9 @@ class IngestionPipeline:
 
 - Coordinates all ingestion components
 - Returns `IngestionReport` with stats (docs processed, chunks created, errors)
-- Incremental sync: only re-embeds documents updated since last sync
-- Stores sync watermark in Redis
+- Full sync loads/rebuilds the complete knowledge base when needed
+- Webhook-triggered incremental sync refreshes changed records when the Java backend reports content changes
+- Stores sync metadata, content hashes, and webhook processing state in Redis
 
 ---
 
@@ -706,9 +681,12 @@ async def handle_content_update(payload: WebhookPayload):
     """Triggered by backend when content changes."""
 ```
 
-- Validates webhook signature
-- Triggers targeted re-ingestion for changed content
+- Validates webhook signature using `WEBHOOK_SECRET`
+- Receives content-change events from the Java backend
+- Triggers targeted re-ingestion for changed content by `source_type` and source IDs
+- Supports create/update/delete events
 - Async background task via `BackgroundTasks`
+- Prevents duplicate webhook processing with Redis idempotency keys
 
 ---
 
@@ -735,47 +713,31 @@ Internal models:
 
 ---
 
-### Phase 9: Frontend (Next.js + Tailwind + shadcn/ui)
+### Phase 9: Existing Frontend API Integration Contract
 
-#### [NEW] frontend/ (Next.js project)
+#### [NEW] docs/frontend-integration.md
+Since the frontend already exists, this project will **not build a new frontend**. Instead, it will provide a clear API contract your frontend can consume.
 
-Initialize with: `npx -y create-next-app@latest ./ --typescript --tailwind --eslint --app --src-dir --no-import-alias`
-Then add shadcn/ui: `npx -y shadcn@latest init`
+Document:
 
-#### [NEW] frontend/src/hooks/useChat.ts
+- `POST /chat` request/response format
+- `POST /chat/stream` SSE request format
+- SSE event types: `token`, `sources`, `done`, `error`, `heartbeat`
+- Session ID handling
+- Citation payload shape
+- Error payload shape
+- Example JavaScript/TypeScript `fetch` and streaming integration snippets
 
-Core chat hook:
+#### Frontend responsibilities
 
-- Manages message state, loading, error
-- Opens `EventSource` for SSE streaming
-- Accumulates tokens into message bubble in real-time
-- Handles `sources` event to display citations
-- Auto-generates session UUID, persists in localStorage
+Your existing frontend only needs to:
 
-#### [NEW] frontend/src/components/chat/ChatWidget.tsx
-
-Full-featured chat widget:
-
-- Collapsible floating button (bottom-right)
-- Slide-up animation on open
-- Header with title + close button
-- MessageList + InputBar + TypingIndicator
-- Dark/light mode support
-
-#### [NEW] frontend/src/components/chat/MessageBubble.tsx
-
-- User vs assistant styling
-- Markdown rendering for assistant messages
-- Inline `[Source N]` rendered as clickable badges
-- Streaming token animation (fade-in per token)
-
-#### [NEW] frontend/src/components/chat/TypingIndicator.tsx
-
-Animated three-dot bounce indicator shown during streaming.
-
-#### [NEW] frontend/src/components/chat/SourceCard.tsx
-
-Expandable source citation card showing: title, type, snippet, link.
+- Send the user message and `session_id` to the backend.
+- Listen to SSE streaming events.
+- Render token chunks as they arrive.
+- Display citations from the `sources` event.
+- Persist the `session_id` locally if conversation memory is needed.
+- Show typing/loading state while streaming is active.
 
 ---
 
@@ -793,23 +755,14 @@ COPY . .
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-#### [NEW] frontend/Dockerfile
+#### Frontend deployment note
 
-```dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+No new frontend Dockerfile is required because your frontend already exists. The chatbot backend should expose HTTP/SSE APIs that can be called from your existing frontend deployment.
 
-FROM node:20-alpine AS runner
-WORKDIR /app
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-CMD ["node", "server.js"]
-```
+If needed, production deployment can add a reverse proxy such as Nginx/Caddy later to route:
+
+- `/api/chatbot/*` → FastAPI chatbot backend
+- frontend routes → your existing frontend app
 
 #### [NEW] docker-compose.prod.yml
 
@@ -899,19 +852,19 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 ## Open Questions
 
 > [!IMPORTANT]
-> **Backend API Structure**: What are the actual backend API endpoints to ingest from? I'll need the base URL pattern and response schemas (or I can design a flexible adapter that you configure later).
+> **Backend API Structure**: Confirmed source APIs are documented in `RAG_KNOWLEDGE_SOURCE_APIS.md` and use `http://localhost:8080/api/v1` as the base URL.
 
 > [!IMPORTANT]
-> **Content Types**: What types of content will be ingested? (e.g., programs, courses, scholarships, FAQs, blog posts). This affects the normalizer and metadata schema.
+> **Authentication**: Protected Spring APIs will use a service-account JWT configured through `CHATBOT_BACKEND_JWT`. The chatbot backend sends it as `Authorization: Bearer <jwt>`.
 
 > [!IMPORTANT]
-> **Authentication**: Do the backend APIs require authentication? If so, what type (API key, OAuth, JWT)?
+> **Incremental Sync**: Incremental refresh will be webhook-driven. When data changes in the Java backend, the Java backend triggers the chatbot webhook endpoint, and the chatbot refreshes only the changed source records.
 
 > [!NOTE]
 > **Embedding Model**: I'm planning to use `nomic-embed-text` for embeddings (via Ollama, runs locally). Alternatively, we could use Ollama's built-in embedding with `qwen2.5:7b` itself, but a dedicated embedding model is recommended. Confirm this is acceptable.
 
 > [!NOTE]
-> **Frontend Deployment**: Should the chat widget be a standalone page or an embeddable widget (iframe/web component) for integration into an existing site?
+> **Frontend Integration**: The frontend already exists. This project only exposes chatbot HTTP/SSE APIs and documentation for that frontend to consume.
 
 ---
 
@@ -965,9 +918,9 @@ The full step-by-step implementation phase roadmap is maintained in a separate f
 | 6     | Session memory                              | 2               | Phase 2      |
 | 7     | API endpoints                               | 5               | Phases 3-6   |
 | 8     | Models & schemas                            | 3               | Phase 2      |
-| 9     | Frontend                                    | ~15             | Phase 7      |
-| 10    | Docker production                           | 3               | Phase 9      |
+| 9     | Existing frontend API integration contract  | 2               | Phase 7      |
+| 10    | Backend Docker production                   | 2               | Phase 7      |
 | 11    | Tests                                       | 5               | Phases 3-7   |
 | 12    | Observability                               | 2               | Phase 2      |
 
-**Total: ~62 files across backend + frontend**
+**Total: ~49 files across backend + API documentation**

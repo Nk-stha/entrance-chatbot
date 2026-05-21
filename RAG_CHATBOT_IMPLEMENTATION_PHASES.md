@@ -8,12 +8,12 @@
 
 **Key tasks:**
 
-- Confirm backend API base URL and authentication method.
-- Identify all authoritative content endpoints.
-- Collect sample JSON responses for each content type.
+- Use [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/RAG_KNOWLEDGE_SOURCE_APIS.md) as the source endpoint inventory.
+- Confirm backend API base URL: `http://localhost:8080/api/v1`.
+- Use service-account JWT authentication for protected endpoints through `CHATBOT_BACKEND_JWT`.
 - Define canonical document fields used by the normalizer.
 - Define metadata taxonomy: `source_type`, `source_id`, `title`, `category`, `tags`, `updated_at`, `version`, `url`.
-- Decide whether the frontend is a standalone chat page, embedded widget, or both.
+- Decide the exact API contract your existing frontend will consume: normal JSON chat, SSE streaming chat, or both.
 
 **Deliverables:**
 
@@ -21,6 +21,8 @@
 - Final metadata schema.
 - Final environment variable list.
 - Content type mapping table.
+- Final decision on which protected sources require `Authorization: Bearer <jwt>`.
+- Webhook event contract for Java backend content-change notifications.
 
 **Exit criteria:**
 
@@ -39,7 +41,6 @@
 - Create root `docker-compose.yml`.
 - Add `docker-compose.prod.yml` override.
 - Add backend Dockerfile.
-- Add frontend Dockerfile.
 - Add Redis service.
 - Add ChromaDB service with persistent volume.
 - Add Ollama service with model volume.
@@ -53,7 +54,6 @@
 - `docker-compose.prod.yml`
 - `.env.example`
 - `backend/Dockerfile`
-- `frontend/Dockerfile`
 - `Makefile`
 
 **Exit criteria:**
@@ -130,11 +130,15 @@
 **Key tasks:**
 
 - Build async `httpx.AsyncClient` wrapper.
-- Implement endpoint-specific fetch methods.
+- Implement endpoint-specific fetch methods from `RAG_KNOWLEDGE_SOURCE_APIS.md`.
+- Support `ApiResponse → data.content[]` extraction.
+- Support direct Spring `Page → content[]` extraction.
+- Support direct `List<T>` extraction.
+- Support `ApiResponse.data` list/object extraction for special endpoints.
 - Add pagination support.
 - Add retry and timeout handling.
-- Add API-key/JWT support depending on backend requirements.
-- Add incremental fetching via `updated_since` where supported.
+- Add API-key/JWT bearer-token support for protected endpoints using `CHATBOT_BACKEND_JWT`.
+- Add webhook-triggered incremental sync support for Java backend content-change events.
 - Normalize transient API errors into ingestion errors.
 
 **Deliverables:**
@@ -144,8 +148,10 @@
 
 **Exit criteria:**
 
-- API client can fetch all configured source types.
+- API client can fetch all configured source types: courses, colleges, syllabus, notes, old questions, trainings, question sets, and questions.
 - Client handles pagination and timeouts.
+- Client handles all documented response wrapper shapes.
+- Client supports bearer-token auth for protected endpoints.
 - Client never uses scraping or HTML crawling.
 
 ---
@@ -215,8 +221,9 @@
 **Key tasks:**
 
 - Implement full sync pipeline.
-- Implement incremental sync based on update timestamps.
-- Store sync watermarks in Redis.
+- Implement webhook-triggered incremental sync based on Java backend content-change events.
+- Support `created`, `updated`, and `deleted` event types.
+- Store webhook idempotency keys in Redis.
 - Support targeted refresh by source type or source ID.
 - Track ingestion metrics and errors.
 - Return detailed ingestion reports.
@@ -229,7 +236,9 @@
 **Exit criteria:**
 
 - Full sync loads all backend API knowledge into ChromaDB.
-- Incremental sync only updates changed content.
+- Webhook events refresh only changed content.
+- Delete events remove stale chunks from ChromaDB.
+- Duplicate webhook events are ignored safely.
 - Failed records are reported without crashing the entire sync.
 
 ---
@@ -405,39 +414,35 @@
 
 ---
 
-### Phase 14 — Next.js Chat Widget Frontend
+### Phase 14 — Existing Frontend API Integration Contract
 
-**Goal:** Build a modern streaming chat UI with citations.
+**Goal:** Provide clean chatbot APIs and documentation that your existing frontend can consume.
 
 **Key tasks:**
 
-- Create Next.js app with TypeScript.
-- Configure Tailwind and shadcn/ui.
-- Build chat widget shell.
-- Build message list and message bubble components.
-- Build input bar and send handling.
-- Implement streaming UI hook.
-- Add typing indicator.
-- Render source citations as expandable cards.
-- Persist session ID in localStorage.
-- Add premium responsive styling.
+- Document `POST /chat` request/response format.
+- Document `POST /chat/stream` SSE request format.
+- Define SSE event types: `token`, `sources`, `done`, `error`, `heartbeat`.
+- Define citation payload shape.
+- Define error payload shape.
+- Define session ID handling.
+- Add example JavaScript/TypeScript integration snippets.
+- Add CORS configuration for your existing frontend domain.
+- Confirm frontend can send messages and receive streaming events.
+- Confirm frontend can display source citations.
 
 **Deliverables:**
 
-- `frontend/src/components/chat/ChatWidget.tsx`
-- `frontend/src/components/chat/MessageList.tsx`
-- `frontend/src/components/chat/MessageBubble.tsx`
-- `frontend/src/components/chat/InputBar.tsx`
-- `frontend/src/components/chat/TypingIndicator.tsx`
-- `frontend/src/components/chat/SourceCard.tsx`
-- `frontend/src/hooks/useChat.ts`
+- `docs/api.md`
+- `docs/frontend-integration.md`
+- Optional `docs/postman_collection.json`
 
 **Exit criteria:**
 
-- Frontend displays streaming tokens live.
-- Typing indicator appears while waiting.
-- Citations are visible and expandable.
-- UI works on desktop and mobile.
+- Existing frontend can call the chatbot API.
+- Existing frontend can consume SSE token events.
+- Existing frontend can render citations from backend payloads.
+- No new frontend app is created in this chatbot project.
 
 ---
 
