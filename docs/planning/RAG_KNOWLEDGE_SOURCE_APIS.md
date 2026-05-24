@@ -20,7 +20,7 @@ http://localhost:8080/api/v1
 ### Production
 
 ```http
-http://api.entrancegateway.com/api/v1
+https://api.entrancegateway.com/api/v1
 ```
 
 ---

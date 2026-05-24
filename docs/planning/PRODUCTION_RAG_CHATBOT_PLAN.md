@@ -280,7 +280,7 @@ Volumes for ChromaDB persistence and Ollama model storage. Health checks on all 
 
 ```env
 # Backend API sources
-BACKEND_API_BASE_URL=http://api.entrancegateway.com/api/v1
+BACKEND_API_BASE_URL=https://api.entrancegateway.com/api/v1
 BACKEND_API_LOCAL_URL=http://localhost:8080/api/v1
 BACKEND_API_DOCKER_URL=http://spring-backend:8080/api/v1
 BACKEND_API_KEY=
@@ -897,7 +897,7 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 ## Open Questions
 
 > [!IMPORTANT]
-> **Backend API Structure**: Confirmed source APIs are documented in `RAG_KNOWLEDGE_SOURCE_APIS.md`. Local base URL: `http://localhost:8080/api/v1`. Production base URL: `http://api.entrancegateway.com/api/v1`.
+> **Backend API Structure**: Confirmed source APIs are documented in `RAG_KNOWLEDGE_SOURCE_APIS.md`. Local base URL: `http://localhost:8080/api/v1`. Production base URL: `https://api.entrancegateway.com/api/v1`.
 
 > [!IMPORTANT]
 > **Authentication**: Protected Spring APIs will use a service-account JWT configured through `CHATBOT_BACKEND_JWT`. The chatbot backend sends it as `Authorization: Bearer <jwt>`.

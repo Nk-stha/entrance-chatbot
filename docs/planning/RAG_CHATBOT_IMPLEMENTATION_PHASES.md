@@ -13,7 +13,7 @@
 - Use [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_KNOWLEDGE_SOURCE_APIS.md) as the source endpoint inventory.
 - Confirm backend API base URLs:
   - Local: `http://localhost:8080/api/v1`
-  - Production: `http://api.entrancegateway.com/api/v1`
+  - Production: `https://api.entrancegateway.com/api/v1`
 - Use service-account JWT authentication for protected endpoints through `CHATBOT_BACKEND_JWT`.
 - Define canonical document fields used by the normalizer.
 - Define metadata taxonomy: `source_type`, `source_id`, `title`, `category`, `tags`, `updated_at`, `version`, `url`.

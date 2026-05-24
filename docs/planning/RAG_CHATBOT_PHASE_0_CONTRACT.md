@@ -59,13 +59,13 @@ http://localhost:8080/api/v1
 Production:
 
 ```http
-http://api.entrancegateway.com/api/v1
+https://api.entrancegateway.com/api/v1
 ```
 
 Runtime configuration:
 
 ```env
-BACKEND_API_BASE_URL=http://api.entrancegateway.com/api/v1
+BACKEND_API_BASE_URL=https://api.entrancegateway.com/api/v1
 BACKEND_API_LOCAL_URL=http://localhost:8080/api/v1
 BACKEND_API_DOCKER_URL=http://spring-backend:8080/api/v1
 BACKEND_API_PAGE_SIZE=100
@@ -384,7 +384,7 @@ Behavior:
 
 ```env
 # Backend API sources
-BACKEND_API_BASE_URL=http://api.entrancegateway.com/api/v1
+BACKEND_API_BASE_URL=https://api.entrancegateway.com/api/v1
 BACKEND_API_LOCAL_URL=http://localhost:8080/api/v1
 BACKEND_API_DOCKER_URL=http://spring-backend:8080/api/v1
 BACKEND_API_PAGE_SIZE=100

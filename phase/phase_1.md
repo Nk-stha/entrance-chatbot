@@ -72,7 +72,7 @@ make env
 ### Important values
 
 ```env
-BACKEND_API_BASE_URL=http://api.entrancegateway.com/api/v1
+BACKEND_API_BASE_URL=https://api.entrancegateway.com/api/v1
 OLLAMA_MODEL=qwen2.5:3b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 CHROMA_COLLECTION=entrance_knowledge
