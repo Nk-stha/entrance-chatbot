@@ -1,0 +1,64 @@
+services:
+  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+        reservations:
+          cpus: "0.5"
+          memory: 512m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chromadb:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536m
+        reservations:
+          cpus: "0.25"
+          memory: 512m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          cpus: "0.1"
+          memory: 128m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  ollama:
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 3584m
+        reservations:
+          cpus: "1.0"
+          memory: 1g
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

@@ -9,10 +9,18 @@ The chatbot will use these APIs as the **only knowledge source**.
 
 ---
 
-## Base URL
+## Base URLs
+
+### Local development
 
 ```http
 http://localhost:8080/api/v1
+```
+
+### Production
+
+```http
+http://api.entrancegateway.com/api/v1
 ```
 
 ---
@@ -591,7 +599,7 @@ When data changes in the Java backend, the Java backend should call the chatbot 
 Recommended chatbot endpoint:
 
 ```http
-POST /api/v1/chatbot/webhooks/content-update
+POST /api/v1/webhooks/sync
 ```
 
 Recommended webhook payload:

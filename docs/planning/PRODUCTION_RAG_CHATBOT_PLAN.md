@@ -2,18 +2,20 @@
 
 ## Overview
 
-Build a modular, production-ready AI chatbot backend that ingests knowledge from **backend APIs** (no scraping), stores embeddings in **ChromaDB**, and generates answers via **Ollama (qwen2.5:7b)** with a full RAG pipeline. The system uses **async FastAPI**, **Redis** session memory, **SSE streaming**, and exposes clean chatbot APIs for your **existing frontend** to consume — all orchestrated with **Docker Compose**.
+Build a modular, production-ready AI chatbot backend that ingests knowledge from **Spring Boot backend APIs** (no scraping), stores embeddings in **ChromaDB**, and generates answers via **Ollama (qwen2.5:3b)** with a resource-efficient RAG pipeline. The system uses **async FastAPI**, **Redis** session memory/state, **SSE streaming**, and exposes clean chatbot APIs for your **existing React/MERN frontend** to consume — all orchestrated with **Docker Compose** for a constrained **4 vCPU / 8 GB RAM / 75 GB NVMe VPS**.
 
 This plan follows modern 2026 RAG practices:
 
 - **Semantic search over lexical-only search** using transformer embeddings.
 - **ANN / HNSW vector indexing** for low-latency approximate nearest-neighbor search.
+- **Recursive character chunking** with 600-character chunks and 120-character overlap to reduce embedding overhead.
 - **Hybrid retrieval** to combine dense semantic search with keyword matching.
-- **QR-RAG query reformulation** for better retrieval on complex questions.
+- **RRF reranking** instead of a heavy cross-encoder to avoid OOM on an 8 GB VPS.
 - **Precomputed embeddings** outside ChromaDB to avoid ingestion bottlenecks.
 - **Async SSE token streaming** from FastAPI using Ollama's async streaming client.
 - **Clean layer separation** between embedding compute, Chroma storage, and generation orchestration.
-- **Spring Boot list APIs** documented in [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/RAG_KNOWLEDGE_SOURCE_APIS.md) as the authoritative knowledge source.
+- **Spring Boot list APIs** documented in [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_KNOWLEDGE_SOURCE_APIS.md) as the authoritative knowledge source.
+- **Phase 0 implementation contract** locked in [RAG_CHATBOT_PHASE_0_CONTRACT.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_CHATBOT_PHASE_0_CONTRACT.md).
 
 ---
 
@@ -53,7 +55,7 @@ Simple semantic similarity can underperform for complex, technical, multi-part, 
 QR-RAG flow:
 
 ```text
-User question → Query analyzer → LLM query rewrite / expansion → Hybrid retrieval → Reranking → Generation
+User question → Query analyzer → Optional lightweight query expansion → Hybrid retrieval → RRF fusion/reranking → Generation
 ```
 
 Examples:
@@ -106,7 +108,7 @@ The system should strictly separate:
 | Embedding compute layer     | Generate vectors asynchronously before storage       |
 | ChromaDB storage layer      | Store vectors, metadata, and documents               |
 | Retrieval layer             | Hybrid search, query reformulation, filtering        |
-| Reranking layer             | Cross-encoder relevance scoring                      |
+| Reranking layer             | Reciprocal Rank Fusion (RRF), no cross-encoder       |
 | Generation layer            | Prompt construction and Ollama streaming             |
 | Guardrail layer             | Hallucination prevention and citation validation     |
 | Memory layer                | Redis-backed session continuity                      |
@@ -126,7 +128,7 @@ graph TB
         Router --> AdminSvc[Admin Service]
         Router --> HealthSvc[Health Checks]
         ChatSvc --> Retriever[Hybrid Retriever]
-        ChatSvc --> Reranker[Cross-Encoder Reranker]
+        ChatSvc --> Reranker[RRF Fusion / Reranker]
         ChatSvc --> Generator[LLM Generator]
         ChatSvc --> Memory[Session Memory]
         AdminSvc --> Ingestor[Ingestion Pipeline]
@@ -134,14 +136,14 @@ graph TB
 
     subgraph Ingestion["Ingestion Pipeline"]
         APIClient[Backend API Client] --> Normalizer[Data Normalizer]
-        Normalizer --> Chunker[Semantic Chunker]
+        Normalizer --> Chunker[Recursive Character Chunker]
         Chunker --> Embedder[Embedding Engine]
         Embedder --> VectorDB[(ChromaDB)]
     end
 
     subgraph Infra["Infrastructure"]
         Redis[(Redis)]
-        Ollama[Ollama / qwen2.5:7b]
+        Ollama[Ollama / qwen2.5:3b + nomic-embed-text]
         ChromaDB[(ChromaDB)]
     end
 
@@ -158,13 +160,13 @@ graph TB
 ### Ingestion Flow
 
 ```
-Backend APIs → API Client (async httpx) → Normalize → Semantic Chunk (with metadata) → Embed (Ollama) → Upsert ChromaDB
+Spring Boot APIs/Webhooks → API Client (async httpx) → Normalize → Recursive Chunk 600 chars / 120 overlap → Embed (nomic-embed-text via Ollama) → Upsert ChromaDB
 ```
 
 ### Generation Flow
 
 ```
-User Question → Session Memory → Query Reformulation (QR-RAG) → Hybrid Retrieval (dense + keyword) → Rerank (cross-encoder) → Prompt Build (with citations) → Qwen2.5 Generation → Hallucination Check → SSE Stream Response
+User Question → Session Memory (last 5 messages) → Optional lightweight query expansion → Hybrid Retrieval (top 20 dense + top 20 keyword) → RRF Fusion → Top 5 Context Chunks → Prompt Build (with citations) → Qwen2.5 3B Generation → Guardrail Check → SSE Stream Response
 ```
 
 ### Async SSE Streaming Flow
@@ -197,7 +199,7 @@ entrance-chatbot/
 │   │   ├── chat.py                      # POST /chat, GET /chat/stream
 │   │   ├── admin.py                     # POST /admin/refresh, /admin/sync
 │   │   ├── health.py                    # GET /health, /health/ready
-│   │   └── webhooks.py                  # POST /webhooks/content-update
+│   │   └── webhooks.py                  # POST /api/v1/webhooks/sync
 │   │
 │   ├── core/
 │   │   ├── __init__.py
@@ -210,7 +212,7 @@ entrance-chatbot/
 │   │   ├── __init__.py
 │   │   ├── api_client.py               # Async backend API fetcher
 │   │   ├── normalizer.py               # Raw data → normalized docs
-│   │   ├── chunker.py                  # Semantic chunking + metadata
+│   │   ├── chunker.py                  # Recursive chunking + metadata
 │   │   ├── embedder.py                 # Ollama embedding generation
 │   │   └── pipeline.py                 # Orchestrates full ingestion
 │   │
@@ -219,7 +221,7 @@ entrance-chatbot/
 │   │   ├── vector_store.py             # ChromaDB client wrapper
 │   │   ├── query_rewriter.py           # QR-RAG query rewriting/expansion
 │   │   ├── hybrid.py                   # Dense + keyword hybrid search
-│   │   ├── reranker.py                 # Cross-encoder reranking
+│   │   ├── reranker.py                 # RRF reranking / fusion
 │   │   └── retriever.py               # Unified retrieval interface
 │   │
 │   ├── generation/
@@ -252,6 +254,7 @@ entrance-chatbot/
 │   └── postman_collection.json        # Optional API testing collection
 │
 ├── RAG_KNOWLEDGE_SOURCE_APIS.md       # Spring API inventory used for RAG ingestion
+├── RAG_CHATBOT_PHASE_0_CONTRACT.md     # Locked Phase 0 implementation contract
 ├── RAG_CHATBOT_IMPLEMENTATION_PHASES.md
 └── PRODUCTION_RAG_CHATBOT_PLAN.md
 ```
@@ -269,7 +272,7 @@ Docker Compose orchestrating 4 core backend services:
 - **backend** — FastAPI app (port 8000)
 - **chromadb** — ChromaDB server (port 8001)
 - **redis** — Redis 7 (port 6379)
-- **ollama** — Ollama with qwen2.5:7b (port 11434)
+- **ollama** — Ollama with `qwen2.5:3b` and `nomic-embed-text` (port 11434)
 
 Volumes for ChromaDB persistence and Ollama model storage. Health checks on all services. Shared `chatbot-network` bridge network.
 
@@ -277,12 +280,15 @@ Volumes for ChromaDB persistence and Ollama model storage. Health checks on all 
 
 ```env
 # Backend API sources
-BACKEND_API_BASE_URL=http://your-backend:8000/api
-BACKEND_API_KEY=your-api-key
+BACKEND_API_BASE_URL=http://api.entrancegateway.com/api/v1
+BACKEND_API_LOCAL_URL=http://localhost:8080/api/v1
+BACKEND_API_DOCKER_URL=http://spring-backend:8080/api/v1
+BACKEND_API_KEY=
+BACKEND_API_PAGE_SIZE=100
 
 # Ollama
 OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_MODEL=qwen2.5:3b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
 # ChromaDB
@@ -305,6 +311,13 @@ WEBHOOK_SECRET=your-java-backend-webhook-secret
 # App
 LOG_LEVEL=INFO
 ENVIRONMENT=development
+UVICORN_WORKERS=1
+MAX_CHAT_HISTORY_MESSAGES=5
+RETRIEVAL_DENSE_TOP_K=20
+RETRIEVAL_KEYWORD_TOP_K=20
+RETRIEVAL_FINAL_TOP_K=5
+CHUNK_SIZE_CHARS=600
+CHUNK_OVERLAP_CHARS=120
 ```
 
 #### [NEW] backend/config.py
@@ -314,6 +327,29 @@ Pydantic `BaseSettings` with `.env` loading, validation, and environment-specifi
 #### [NEW] Makefile
 
 Targets: `up`, `down`, `build`, `logs`, `test`, `lint`, `seed`, `refresh`.
+
+---
+
+#### [NEW] VPS Resource Allocation
+
+The production VPS target is **4 vCPU / 8 GB RAM / 75 GB NVMe**. The deployment must prioritize stability over maximum parallelism.
+
+| Service | CPU Limit | RAM Limit | Purpose |
+| --- | ---: | ---: | --- |
+| **Ollama** | 3.0 cores | 3.5 GB | Runs `qwen2.5:3b` and `nomic-embed-text` locally |
+| **FastAPI** | 2.0 cores | 2.0 GB | API routing, streaming, background ingestion/chunking |
+| **ChromaDB** | 1.5 cores | 1.5 GB | Persistent local vector store and HNSW index |
+| **Redis** | 0.5 cores | 0.5 GB | Session memory, MD5 hashes, webhook idempotency keys |
+| **Host OS** | - | ~0.5 GB | Linux/Ubuntu overhead |
+| **Swap file** | - | +8.0 GB | Emergency overflow on NVMe to reduce OOM crashes |
+
+Operational rules:
+
+- Run Uvicorn with **1 worker** to avoid duplicated model/client memory and Chroma SQLite thread issues.
+- Configure an **8 GB swap file** before production deployment.
+- Use Docker Compose memory limits and restart policies.
+- Do not load a cross-encoder reranker on this VPS.
+- Keep ChromaDB, Redis, and Ollama on persistent Docker volumes.
 
 ---
 
@@ -365,12 +401,16 @@ Custom exceptions: `LLMUnavailableError`, `RetrievalError`, `IngestionError`, `R
 class BackendAPIClient:
     """Async httpx client to fetch data from backend APIs."""
 
-    async def fetch_programs(self) -> list[RawDocument]
     async def fetch_courses(self) -> list[RawDocument]
-    async def fetch_scholarships(self) -> list[RawDocument]
-    async def fetch_faqs(self) -> list[RawDocument]
+    async def fetch_colleges(self) -> list[RawDocument]
+    async def fetch_syllabus(self) -> list[RawDocument]
+    async def fetch_notes(self) -> list[RawDocument]
+    async def fetch_old_questions(self) -> list[RawDocument]
+    async def fetch_trainings(self) -> list[RawDocument]
+    async def fetch_question_sets(self) -> list[RawDocument]
+    async def fetch_questions(self) -> list[RawDocument]
     async def fetch_all(self) -> list[RawDocument]
-    async def fetch_updated_since(self, since: datetime) -> list[RawDocument]
+    async def fetch_by_source_ids(self, source_type: str, source_ids: list[str]) -> list[RawDocument]
 ```
 
 - Uses `httpx.AsyncClient` with connection pooling
@@ -396,20 +436,21 @@ class DataNormalizer:
 
 #### [NEW] backend/ingestion/chunker.py
 
-**Semantic chunking** — NOT fixed-size splitting:
+**Recursive character chunking** — optimized for 8 GB VPS stability:
 
 ```python
-class SemanticChunker:
-    """Splits documents by semantic boundaries with rich metadata."""
+class RecursiveChunker:
+    """Splits documents using recursive character chunking with rich metadata."""
 
     def chunk(self, doc: NormalizedDocument) -> list[Chunk]
 ```
 
-- Uses sentence-boundary detection + cosine similarity between sentence embeddings
-- Groups semantically similar sentences into chunks
-- Each `Chunk` carries metadata: `source_id`, `source_type`, `title`, `section`, `chunk_index`, `total_chunks`, `created_at`, `tags`
-- Target chunk size: 256-512 tokens with overlap
-- Falls back to recursive character splitting if semantic chunking fails
+- Uses LangChain `RecursiveCharacterTextSplitter`
+- Target chunk size: **600 characters**
+- Chunk overlap: **120 characters**
+- Keeps metadata: `source_id`, `source_type`, `title`, `section`, `chunk_index`, `total_chunks`, `created_at`, `tags`
+- Avoids sentence-embedding chunking overhead during ingestion
+- Reduces RAM/CPU pressure compared with semantic chunk grouping
 
 #### [NEW] backend/ingestion/embedder.py
 
@@ -432,8 +473,9 @@ class IngestionPipeline:
     """Orchestrates: fetch → normalize → chunk → embed → store."""
 
     async def run_full_sync(self) -> IngestionReport
-    async def run_incremental_sync(self, since: datetime) -> IngestionReport
-    async def refresh_collection(self, source_type: str) -> IngestionReport
+    async def process_webhook_event(self, payload: WebhookSyncPayload) -> IngestionReport
+    async def refresh_source_ids(self, source_type: str, source_ids: list[str]) -> IngestionReport
+    async def reconcile_source_ids(self) -> IngestionReport
 ```
 
 - Coordinates all ingestion components
@@ -444,7 +486,7 @@ class IngestionPipeline:
 
 ---
 
-### Phase 4: Retrieval & Reranking
+### Phase 4: Hybrid Retrieval & RRF
 
 #### [NEW] backend/retrieval/vector_store.py
 
@@ -503,17 +545,18 @@ class HybridRetriever:
 #### [NEW] backend/retrieval/reranker.py
 
 ```python
-class CrossEncoderReranker:
-    """Reranks retrieved chunks using cross-encoder scoring."""
+class RRFReranker:
+    """Fuses dense and keyword rankings using Reciprocal Rank Fusion."""
 
-    async def rerank(self, query: str, chunks: list[RetrievedChunk], top_k: int = 5) -> list[RetrievedChunk]
+    def rerank(self, ranked_lists: list[list[RetrievedChunk]], top_k: int = 5) -> list[RetrievedChunk]
 ```
 
-- Uses `sentence-transformers` `CrossEncoder` model (`cross-encoder/ms-marco-MiniLM-L-6-v2`)
-- Runs in thread pool to avoid blocking async loop
-- Assigns relevance scores, returns top-k
+- Uses **Reciprocal Rank Fusion (RRF)**: `score = Σ 1 / (k + rank_i)`
+- Default RRF constant: `k = 60`
+- No ML cross-encoder model is loaded, preventing extra RAM usage
+- Returns the top 5 context chunks for prompt construction
 
-Unified interface: `retrieve(query) → optional QR-RAG rewrite → hybrid search → rerank → top results`.
+Unified interface: `retrieve(query) → optional lightweight query expansion → dense + keyword search → RRF fusion → top results`.
 
 Recommended retrieval algorithm:
 
@@ -524,7 +567,7 @@ Recommended retrieval algorithm:
 5. Perform keyword/full-text search for lexical precision.
 6. Fuse results with Reciprocal Rank Fusion.
 7. Deduplicate by stable chunk ID.
-8. Rerank top candidates with cross-encoder.
+8. Use RRF to merge and score candidates.
 9. Return top grounded chunks for prompt construction.
 
 ---
@@ -617,7 +660,7 @@ Orchestrates: `prompt build → LLM generate (stream) → hallucination check �
 class RedisSessionMemory:
     """Redis-backed conversation memory with TTL."""
 
-    async def get_history(self, session_id: str, max_turns: int = 10) -> list[Message]
+    async def get_history(self, session_id: str, max_messages: int = 5) -> list[Message]
     async def add_message(self, session_id: str, message: Message)
     async def clear_session(self, session_id: str)
 ```
@@ -676,17 +719,19 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 #### [NEW] backend/api/webhooks.py
 
 ```python
-@router.post("/webhooks/content-update")
-async def handle_content_update(payload: WebhookPayload):
-    """Triggered by backend when content changes."""
+@router.post("/api/v1/webhooks/sync")
+async def sync_webhook(payload: WebhookSyncPayload, background_tasks: BackgroundTasks):
+    """Triggered by Spring Boot when content changes."""
 ```
 
 - Validates webhook signature using `WEBHOOK_SECRET`
 - Receives content-change events from the Java backend
 - Triggers targeted re-ingestion for changed content by `source_type` and source IDs
+- Uses MD5 payload hash diffing in Redis to skip duplicate/no-op updates
 - Supports create/update/delete events
 - Async background task via `BackgroundTasks`
 - Prevents duplicate webhook processing with Redis idempotency keys
+- Nightly 2:00 AM reconciliation job compares source IDs from Spring Boot with ChromaDB to catch missed hard deletes
 
 ---
 
@@ -701,7 +746,7 @@ Pydantic models for API I/O:
 - `StreamChunk(type, content, sources?)`
 - `IngestionReport(total_docs, total_chunks, errors, duration_seconds)`
 - `HealthResponse(status, components)`
-- `WebhookPayload(event_type, source_type, source_ids, timestamp)`
+- `WebhookSyncPayload(event_id, event_type, source_type, source_ids, occurred_at, payload_hash?)``
 
 #### [NEW] backend/models/domain.py
 
@@ -779,7 +824,7 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 #### [NEW] backend/tests/test_ingestion.py
 
 - Test normalizer with various API response formats
-- Test semantic chunker output shape and metadata
+- Test recursive chunker output shape, 600-character target, 120-character overlap, and metadata
 - Test embedder batching
 - Test full pipeline with mocked API client
 - Test incremental sync logic
@@ -788,7 +833,7 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 
 - Test vector store upsert + query
 - Test hybrid retrieval fusion (RRF scoring)
-- Test reranker ordering
+- Test RRF ordering and deduplication
 - Test metadata filtering
 
 #### [NEW] backend/tests/test_generation.py
@@ -837,9 +882,9 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 | ------------------------ | ------------------------------------------------- | ---------------------------------------------------------------- |
 | Embedding model          | `nomic-embed-text` via Ollama                     | Dedicated local embedding model with strong semantic quality     |
 | Vector indexing          | ChromaDB ANN/HNSW                                 | Avoids flat scans and supports low-latency vector retrieval      |
-| Query reformulation      | QR-RAG with qwen2.5                               | Improves retrieval for vague, technical, or multi-part questions |
-| Reranker                 | `cross-encoder/ms-marco-MiniLM-L-6-v2`            | Small, fast, proven accuracy for reranking                       |
-| Chunking                 | Semantic (sentence-boundary + similarity)         | Better coherence than fixed-size splitting                       |
+| Query reformulation      | Optional lightweight qwen2.5:3b expansion          | Disabled or timeout-limited when VPS load is high                 |
+| Reranker                 | Reciprocal Rank Fusion (RRF)                     | Math-only, fast, avoids cross-encoder RAM overhead on 8 GB VPS     |
+| Chunking                 | Recursive character chunking: 600 chars / 120 overlap | Stable, predictable, low-overhead for 8 GB VPS                |
 | Retrieval fusion         | Reciprocal Rank Fusion                            | Simple, effective, no hyperparameter tuning                      |
 | Session storage          | Redis with TTL                                    | Fast, scalable, auto-expiring sessions                           |
 | SSE format               | `data: {json}\n\n`                                | Standard SSE, easy to parse in frontend                          |
@@ -852,7 +897,7 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 ## Open Questions
 
 > [!IMPORTANT]
-> **Backend API Structure**: Confirmed source APIs are documented in `RAG_KNOWLEDGE_SOURCE_APIS.md` and use `http://localhost:8080/api/v1` as the base URL.
+> **Backend API Structure**: Confirmed source APIs are documented in `RAG_KNOWLEDGE_SOURCE_APIS.md`. Local base URL: `http://localhost:8080/api/v1`. Production base URL: `http://api.entrancegateway.com/api/v1`.
 
 > [!IMPORTANT]
 > **Authentication**: Protected Spring APIs will use a service-account JWT configured through `CHATBOT_BACKEND_JWT`. The chatbot backend sends it as `Authorization: Bearer <jwt>`.
@@ -861,7 +906,7 @@ Shared fixtures: mock Ollama client, in-memory ChromaDB, fake Redis, test FastAP
 > **Incremental Sync**: Incremental refresh will be webhook-driven. When data changes in the Java backend, the Java backend triggers the chatbot webhook endpoint, and the chatbot refreshes only the changed source records.
 
 > [!NOTE]
-> **Embedding Model**: I'm planning to use `nomic-embed-text` for embeddings (via Ollama, runs locally). Alternatively, we could use Ollama's built-in embedding with `qwen2.5:7b` itself, but a dedicated embedding model is recommended. Confirm this is acceptable.
+> **Embedding Model**: Confirmed `nomic-embed-text` via Ollama for embeddings. It has an approximately 300 MB footprint and is suitable for local VPS deployment.
 
 > [!NOTE]
 > **Frontend Integration**: The frontend already exists. This project only exposes chatbot HTTP/SSE APIs and documentation for that frontend to consume.
@@ -885,9 +930,9 @@ docker compose exec backend pytest tests/test_api.py -v
 
 ### Integration Verification
 
-1. `docker compose up` — all 5 services start and pass health checks
+1. `docker compose up` — all 4 backend services start and pass health checks
 2. Trigger ingestion via `POST /admin/refresh` — verify chunks in ChromaDB
-3. Send chat message — verify retrieval → reranking → generation pipeline
+3. Send chat message — verify retrieval → RRF fusion → generation pipeline
 4. Verify SSE streaming in browser dev tools
 5. Verify frontend renders streaming tokens + citations
 6. Test rate limiting by exceeding threshold
@@ -905,7 +950,7 @@ docker compose exec backend pytest tests/test_api.py -v
 
 The full step-by-step implementation phase roadmap is maintained in a separate file:
 
-[RAG_CHATBOT_IMPLEMENTATION_PHASES.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/RAG_CHATBOT_IMPLEMENTATION_PHASES.md)
+[RAG_CHATBOT_IMPLEMENTATION_PHASES.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_CHATBOT_IMPLEMENTATION_PHASES.md)
 
 
 | Phase | Component                                   | Estimated Files | Dependencies |
@@ -913,7 +958,7 @@ The full step-by-step implementation phase roadmap is maintained in a separate f
 | 1     | Infrastructure (Docker, config, env)        | 5               | None         |
 | 2     | Core framework (logging, middleware, retry) | 5               | Phase 1      |
 | 3     | Ingestion pipeline                          | 6               | Phase 2      |
-| 4     | Retrieval & reranking                       | 5               | Phase 3      |
+| 4     | Hybrid retrieval & RRF                       | 5               | Phase 3      |
 | 5     | Generation pipeline                         | 6               | Phase 4      |
 | 6     | Session memory                              | 2               | Phase 2      |
 | 7     | API endpoints                               | 5               | Phases 3-6   |

@@ -2,14 +2,18 @@
 
 ## Detailed Implementation Phases
 
+> Phase 0 decisions are locked in [RAG_CHATBOT_PHASE_0_CONTRACT.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_CHATBOT_PHASE_0_CONTRACT.md).
+
 ### Phase 0 — Requirement Finalization and API Contract Discovery
 
 **Goal:** Lock the knowledge-source contract before writing ingestion code.
 
 **Key tasks:**
 
-- Use [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/RAG_KNOWLEDGE_SOURCE_APIS.md) as the source endpoint inventory.
-- Confirm backend API base URL: `http://localhost:8080/api/v1`.
+- Use [RAG_KNOWLEDGE_SOURCE_APIS.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_KNOWLEDGE_SOURCE_APIS.md) as the source endpoint inventory.
+- Confirm backend API base URLs:
+  - Local: `http://localhost:8080/api/v1`
+  - Production: `http://api.entrancegateway.com/api/v1`
 - Use service-account JWT authentication for protected endpoints through `CHATBOT_BACKEND_JWT`.
 - Define canonical document fields used by the normalizer.
 - Define metadata taxonomy: `source_type`, `source_id`, `title`, `category`, `tags`, `updated_at`, `version`, `url`.
@@ -17,7 +21,7 @@
 
 **Deliverables:**
 
-- Backend API contract notes.
+- Backend API contract notes: [RAG_CHATBOT_PHASE_0_CONTRACT.md](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/planning/RAG_CHATBOT_PHASE_0_CONTRACT.md).
 - Final metadata schema.
 - Final environment variable list.
 - Content type mapping table.
@@ -44,9 +48,11 @@
 - Add Redis service.
 - Add ChromaDB service with persistent volume.
 - Add Ollama service with model volume.
-- Pull/configure `qwen2.5:7b` and embedding model.
+- Pull/configure `qwen2.5:3b` and `nomic-embed-text`.
 - Add `.env.example`.
 - Add `Makefile` commands for local workflows.
+- Configure 8 GB Linux swap on the VPS.
+- Add Docker CPU/RAM limits for Ollama, FastAPI, ChromaDB, and Redis.
 
 **Deliverables:**
 
@@ -61,6 +67,8 @@
 - `docker compose up` starts all infrastructure services.
 - Redis, ChromaDB, and Ollama are reachable from the backend container.
 - Volumes persist ChromaDB and Ollama data.
+- Uvicorn is pinned to 1 worker.
+- Docker services have strict resource limits suitable for 4 vCPU / 8 GB RAM.
 
 ---
 
@@ -156,7 +164,7 @@
 
 ---
 
-### Phase 5 — Normalization and Semantic Chunking
+### Phase 5 — Normalization and Recursive Chunking
 
 **Goal:** Convert API objects into clean, semantic, metadata-rich chunks.
 
@@ -164,8 +172,8 @@
 
 - Implement document normalizer.
 - Map each backend source type to canonical document format.
-- Implement semantic chunking using sentence boundaries and similarity.
-- Add fallback recursive splitting.
+- Implement recursive character chunking using LangChain `RecursiveCharacterTextSplitter`.
+- Use 600-character chunks with 120-character overlap.
 - Attach rich metadata to every chunk.
 - Generate deterministic chunk IDs.
 - Preserve source traceability for citations.
@@ -179,8 +187,8 @@
 **Exit criteria:**
 
 - Every chunk has source metadata and deterministic ID.
-- Chunk size stays within configured token bounds.
-- Chunk text remains semantically coherent.
+- Chunk size uses configured 600-character target with 120-character overlap.
+- Chunk text remains coherent enough for short educational records while keeping ingestion lightweight.
 
 ---
 
@@ -223,7 +231,8 @@
 - Implement full sync pipeline.
 - Implement webhook-triggered incremental sync based on Java backend content-change events.
 - Support `created`, `updated`, and `deleted` event types.
-- Store webhook idempotency keys in Redis.
+- Store webhook idempotency keys and MD5 payload hashes in Redis.
+- Schedule nightly 2:00 AM reconciliation to catch missed hard deletes.
 - Support targeted refresh by source type or source ID.
 - Track ingestion metrics and errors.
 - Return detailed ingestion reports.
@@ -273,28 +282,28 @@
 
 ---
 
-### Phase 9 — Reranking Layer
+### Phase 9 — RRF Fusion Layer
 
 **Goal:** Improve retrieved context quality before generation.
 
 **Key tasks:**
 
-- Add cross-encoder reranker.
-- Run reranking in a thread pool to avoid blocking the async loop.
-- Score query/chunk pairs.
-- Return the top final context chunks.
-- Add latency logging for reranking.
+- Implement Reciprocal Rank Fusion scoring.
+- Merge dense and keyword result lists.
+- Deduplicate chunks by stable chunk ID.
+- Return the top 5 final context chunks.
+- Add latency logging for retrieval and RRF fusion.
 
 **Deliverables:**
 
 - `backend/retrieval/reranker.py`
-- Reranking tests.
+- RRF fusion tests.
 
 **Exit criteria:**
 
-- Reranker improves result ordering.
-- Blocking model inference does not block FastAPI event loop.
-- Low-confidence chunks are filtered out.
+- RRF improves final ordering by combining semantic and keyword matches.
+- No cross-encoder or extra ML reranker is loaded.
+- Low-confidence or duplicate chunks are filtered out.
 
 ---
 
