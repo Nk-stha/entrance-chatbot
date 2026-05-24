@@ -28,6 +28,13 @@ The main markdown documentation is organized under:
 | 6 | [phase_6.md](phase_6.md) | Embedding and ChromaDB storage verified |
 | 7 | [phase_7.md](phase_7.md) | Full and incremental sync pipeline verified |
 | 8 | [phase_8.md](phase_8.md) | Hybrid retrieval and QR-RAG verified |
+| 9 | [phase_9.md](phase_9.md) | RRF fusion/reranking verified |
+| 10 | [phase_10.md](phase_10.md) | Prompt guardrails and citations verified |
+| 11 | [phase_11.md](phase_11.md) | Ollama generation and SSE streaming verified |
+| 12 | [phase_12.md](phase_12.md) | Redis conversation memory verified |
+| 13 | [phase_13.md](phase_13.md) | Public/admin/webhook/metrics APIs verified |
+| 14 | [phase_14.md](phase_14.md) | Frontend API integration contract verified |
+| 15 | [phase_15.md](phase_15.md) | Testing, QA, and production hardening verified |
 
 ## Current Status
 
@@ -47,12 +54,30 @@ Phase 7 created and verified full/incremental ingestion pipeline orchestration.
 
 Phase 8 created and verified hybrid retrieval with QR-RAG query reformulation.
 
+Phase 9 created and verified RRF fusion/reranking for final context ordering.
+
+Phase 10 created and verified prompt engineering, citation validation, and hallucination guardrails.
+
+Phase 11 created and verified Ollama streaming generation with SSE events.
+
+Phase 12 created and verified Redis-backed conversation memory.
+
+Phase 13 created and verified public chat, admin, webhook, and metrics APIs.
+
+Phase 14 created and verified the existing frontend API integration contract.
+
+Phase 15 created and verified final QA, dependency-failure handling, and deployment readiness.
+
 Setup runbook:
 
 [PHASE_1_INFRASTRUCTURE_SETUP.md](../docs/setup/PHASE_1_INFRASTRUCTURE_SETUP.md)
 
+Final deployment checklist:
+
+[final-deployment-checklist.md](../docs/final-deployment-checklist.md)
+
 Next implementation work:
 
 ```text
-Phase 9 — RRF Fusion Layer
+Staging deployment review / production rollout preparation
 ```

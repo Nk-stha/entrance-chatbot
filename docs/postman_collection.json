@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "Entrance Gateway Chatbot API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8002/api/v1"
+    },
+    {
+      "key": "apiKey",
+      "value": "paste-your-api-key-here"
+    }
+  ],
+  "item": [
+    {
+      "name": "Chat",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/chat",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"What is BCA?\",\n  \"session_id\": \"postman-demo-session\",\n  \"filters\": {\"source_type\": \"course\"},\n  \"top_k\": 3\n}"
+        }
+      }
+    },
+    {
+      "name": "Chat Stream",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/chat/stream",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"What is BCA?\",\n  \"session_id\": \"postman-demo-stream\",\n  \"filters\": {\"source_type\": \"course\"},\n  \"top_k\": 3\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin Stats",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-API-Key", "value": "{{apiKey}}"}],
+        "url": "{{baseUrl}}/admin/stats"
+      }
+    },
+    {
+      "name": "Admin Full Refresh",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "X-API-Key", "value": "{{apiKey}}"}],
+        "url": "{{baseUrl}}/admin/refresh"
+      }
+    },
+    {
+      "name": "Webhook Sync",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-API-Key", "value": "{{apiKey}}"}
+        ],
+        "url": "{{baseUrl}}/webhooks/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event_id\": \"evt-postman-1\",\n  \"event_type\": \"updated\",\n  \"source_type\": \"course\",\n  \"source_ids\": [\"course:8\"],\n  \"occurred_at\": \"2026-05-25T00:15:00Z\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Metrics",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/metrics"
+      }
+    }
+  ]
+}

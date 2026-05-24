@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from api.health import router as health_router
+from api.router import router as api_router
 from api.schemas import router as schemas_router
 from config import get_settings
 from core.exceptions import register_exception_handlers
@@ -50,3 +51,4 @@ register_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(schemas_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v1")

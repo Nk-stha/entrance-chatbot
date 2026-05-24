@@ -35,12 +35,20 @@ class QueryRewriter:
         if not original:
             raise ValueError("query must not be empty")
 
-        prompt = (
-            "Rewrite this student admission/search question into a concise retrieval query. "
-            "Keep important entities, course names, colleges, exams, subjects, and constraints. "
-            "Return only the rewritten query, no explanation.\n\n"
-            f"Question: {original}"
-        )
+        prompt = f"""Rewrite the user's question into a highly effective search query for a vector database.
+Focus on extracting key entities, course names (e.g., BCA, CSIT), exams (e.g., IOE, CMAT), colleges, and subjects.
+Remove conversational filler. Return ONLY the search query.
+
+Example 1:
+User: Hi, can you tell me what the syllabus is for the IOE entrance exam?
+Query: IOE entrance exam syllabus topics
+
+Example 2:
+User: Which computer-related courses and trainings are available?
+Query: computer-related courses trainings BCA Bsc CSIT
+
+User: {original}
+Query:"""
 
         try:
             logger.info("query_rewrite_started", query_length=len(original))
@@ -50,7 +58,7 @@ class QueryRewriter:
                     "model": self.settings.ollama_model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.1},
+                    "options": {"temperature": 0.0, "num_predict": 30},
                 },
             )
             response.raise_for_status()
