@@ -126,7 +126,7 @@ The backend service builds from:
 It exposes:
 
 ```http
-http://localhost:8000
+http://localhost:8002
 ```
 
 It runs:
@@ -177,11 +177,19 @@ It also has a memory cap policy:
 
 ### Ollama service
 
-Ollama runs on:
+Ollama runs internally on:
 
 ```text
-localhost:11434
+http://ollama:11434
 ```
+
+It is exposed on the host as:
+
+```text
+http://localhost:11435
+```
+
+Host port `11435` is used because `11434` is often already used by a locally installed Ollama service.
 
 Inside Docker, backend uses:
 
@@ -285,7 +293,7 @@ It exposes port:
 It defines a container health check:
 
 ```bash
-curl -fsS http://localhost:8000/health || exit 1
+curl -fsS http://localhost:8002/health || exit 1
 ```
 
 ### Why this matters
@@ -470,7 +478,7 @@ The app title and description appear in OpenAPI docs.
 Once running, docs will be available at:
 
 ```http
-http://localhost:8000/docs
+http://localhost:8002/docs
 ```
 
 ---
@@ -679,10 +687,12 @@ Host machine ports:
 
 | Host URL | Service |
 |---|---|
-| `http://localhost:8000` | FastAPI backend |
+| `http://localhost:8002` | FastAPI backend |
 | `http://localhost:8001` | ChromaDB |
 | `http://localhost:6379` | Redis |
-| `http://localhost:11434` | Ollama |
+| `http://localhost:11435` | Ollama container |
+
+> Host port `11435` avoids conflict with local Ollama on `11434`. Inside Docker, services still use `http://ollama:11434`.
 
 Internal Docker URLs:
 

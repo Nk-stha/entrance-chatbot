@@ -59,3 +59,32 @@ Expected liveness:
 ```
 
 Readiness may show `not_ready` until Redis, ChromaDB, and Ollama are all reachable.
+
+## Ollama Port Note
+
+The Ollama container listens internally on:
+
+```text
+http://ollama:11434
+```
+
+On the host machine it is exposed as:
+
+```text
+http://localhost:11435
+```
+
+This avoids conflict with a locally installed Ollama service that may already use host port `11434`.
+
+If you see this error:
+
+```text
+failed to bind host port 0.0.0.0:11434/tcp: address already in use
+```
+
+use the current `docker-compose.yml`, where Ollama maps:
+
+```yaml
+ports:
+  - "11435:11434"
+```

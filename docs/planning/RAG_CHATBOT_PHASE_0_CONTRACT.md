@@ -26,25 +26,25 @@ Knowledge comes only from Spring Boot backend APIs and Spring Boot webhooks.
 
 Production VPS:
 
-| Resource | Value |
-|---|---:|
-| CPU | 4 vCPU |
-| RAM | 8 GB |
-| Disk | 75 GB NVMe |
-| Swap | 8 GB recommended |
+| Resource |            Value |
+| -------- | ---------------: |
+| CPU      |           4 vCPU |
+| RAM      |             8 GB |
+| Disk     |       75 GB NVMe |
+| Swap     | 8 GB recommended |
 
 Core runtime choices:
 
-| Component | Choice |
-|---|---|
-| Backend | FastAPI, Python 3.12, async |
-| ASGI server | Uvicorn, 1 worker |
-| Vector DB | ChromaDB persistent local mode |
-| LLM runtime | Ollama |
-| Chat model | `qwen2.5:3b` |
-| Embedding model | `nomic-embed-text` |
-| Memory/state | Redis 7 |
-| Deployment | Docker Compose |
+| Component       | Choice                         |
+| --------------- | ------------------------------ |
+| Backend         | FastAPI, Python 3.12, async    |
+| ASGI server     | Uvicorn, 1 worker              |
+| Vector DB       | ChromaDB persistent local mode |
+| LLM runtime     | Ollama                         |
+| Chat model      | `qwen2.5:3b`                   |
+| Embedding model | `nomic-embed-text`             |
+| Memory/state    | Redis 7                        |
+| Deployment      | Docker Compose                 |
 
 ---
 
@@ -104,18 +104,18 @@ Rules:
 
 Initial global RAG ingestion includes:
 
-| Source type | Include in v1 | Notes |
-|---|---:|---|
-| `course` | Yes | Core academic knowledge |
-| `college` | Yes | College discovery and metadata |
-| `syllabus` | Yes | Course/subject structure |
-| `note` | Yes | Learning material metadata/descriptions |
-| `old_question` | Yes | Exam preparation content |
-| `question_set` | Yes | Practice set metadata |
-| `question` | Yes | Practice questions and answers |
-| `training` | Yes | Training/program offerings |
-| `quiz_attempt` | No | User-specific data, excluded from global RAG |
-| `blog` | No | No backend API exists yet |
+| Source type    | Include in v1 | Notes                                        |
+| -------------- | ------------: | -------------------------------------------- |
+| `course`       |           Yes | Core academic knowledge                      |
+| `college`      |           Yes | College discovery and metadata               |
+| `syllabus`     |           Yes | Course/subject structure                     |
+| `note`         |           Yes | Learning material metadata/descriptions      |
+| `old_question` |           Yes | Exam preparation content                     |
+| `question_set` |           Yes | Practice set metadata                        |
+| `question`     |           Yes | Practice questions and answers               |
+| `training`     |           Yes | Training/program offerings                   |
+| `quiz_attempt` |            No | User-specific data, excluded from global RAG |
+| `blog`         |            No | No backend API exists yet                    |
 
 PDF/file extraction is **not included in v1**.
 
@@ -147,13 +147,13 @@ Every API item becomes a `NormalizedDocument`:
 
 Required fields:
 
-| Field | Required | Rule |
-|---|---:|---|
-| `source_type` | Yes | One of the known source types |
-| `source_id` | Yes | Deterministic and globally unique |
-| `title` | Yes | Fallback to source type + ID if missing |
-| `content` | Yes | Human-readable text, not raw JSON |
-| `metadata` | Yes | JSON-serializable dictionary |
+| Field         | Required | Rule                                    |
+| ------------- | -------: | --------------------------------------- |
+| `source_type` |      Yes | One of the known source types           |
+| `source_id`   |      Yes | Deterministic and globally unique       |
+| `title`       |      Yes | Fallback to source type + ID if missing |
+| `content`     |      Yes | Human-readable text, not raw JSON       |
+| `metadata`    |      Yes | JSON-serializable dictionary            |
 
 ---
 
@@ -161,26 +161,26 @@ Required fields:
 
 Common metadata keys:
 
-| Key | Purpose |
-|---|---|
-| `source_type` | Filtering and citation grouping |
-| `source_id` | Stable document identity |
-| `source_primary_id` | Raw backend ID |
-| `title` | Citation title |
-| `category` | Optional grouping/filtering |
-| `tags` | Optional search/filter tags |
-| `url` | Backend/web URL when available |
-| `file_url` | PDF/material reference when available |
-| `updated_at` | Optional backend timestamp |
-| `version` | Optional backend version |
-| `content_hash` | MD5/SHA hash for no-op detection |
+| Key                 | Purpose                               |
+| ------------------- | ------------------------------------- |
+| `source_type`       | Filtering and citation grouping       |
+| `source_id`         | Stable document identity              |
+| `source_primary_id` | Raw backend ID                        |
+| `title`             | Citation title                        |
+| `category`          | Optional grouping/filtering           |
+| `tags`              | Optional search/filter tags           |
+| `url`               | Backend/web URL when available        |
+| `file_url`          | PDF/material reference when available |
+| `updated_at`        | Optional backend timestamp            |
+| `version`           | Optional backend version              |
+| `content_hash`      | MD5/SHA hash for no-op detection      |
 
 Chunk-level metadata additionally includes:
 
-| Key | Purpose |
-|---|---|
-| `chunk_id` | Deterministic Chroma ID |
-| `chunk_index` | Position inside source document |
+| Key            | Purpose                          |
+| -------------- | -------------------------------- |
+| `chunk_id`     | Deterministic Chroma ID          |
+| `chunk_index`  | Position inside source document  |
 | `total_chunks` | Total chunks for source document |
 
 Chunk ID format:
@@ -212,11 +212,11 @@ Rules:
 
 Hybrid retrieval uses two tracks:
 
-| Track | Top K |
-|---|---:|
-| Dense semantic search | 20 |
-| Keyword/full-text search | 20 |
-| Final RRF context | 5 |
+| Track                    | Top K |
+| ------------------------ | ----: |
+| Dense semantic search    |    20 |
+| Keyword/full-text search |    20 |
+| Final RRF context        |     5 |
 
 Runtime configuration:
 
@@ -284,13 +284,13 @@ data: {"type":"done","confidence":0.82}
 
 Supported event types:
 
-| Type | Meaning |
-|---|---|
-| `token` | Incremental answer text |
-| `sources` | Final citation/source list |
-| `done` | Stream completed |
-| `error` | Recoverable stream error |
-| `heartbeat` | Keep-alive event |
+| Type        | Meaning                    |
+| ----------- | -------------------------- |
+| `token`     | Incremental answer text    |
+| `sources`   | Final citation/source list |
+| `done`      | Stream completed           |
+| `error`     | Recoverable stream error   |
+| `heartbeat` | Keep-alive event           |
 
 ---
 
@@ -333,12 +333,12 @@ Payload:
 
 Supported `event_type` values:
 
-| Event type | Behavior |
-|---|---|
-| `created` | Fetch changed record and upsert chunks |
-| `updated` | Delete old chunks, fetch latest record, upsert chunks |
-| `deleted` | Delete chunks for the source record |
-| `bulk_refresh` | Refresh all records for the source type |
+| Event type     | Behavior                                              |
+| -------------- | ----------------------------------------------------- |
+| `created`      | Fetch changed record and upsert chunks                |
+| `updated`      | Delete old chunks, fetch latest record, upsert chunks |
+| `deleted`      | Delete chunks for the source record                   |
+| `bulk_refresh` | Refresh all records for the source type               |
 
 Security headers:
 
@@ -427,19 +427,19 @@ CHUNK_OVERLAP_CHARS=120
 
 ## 15. Phase 0 Exit Criteria
 
-| Criterion | Status |
-|---|---:|
-| Every ingestion source is known | Done |
-| Every v1 source has a stable ID strategy | Done |
-| Production API URL is known | Done |
-| Protected API auth method is known | Done |
-| Frontend API contract is known | Done |
-| Webhook contract is known | Done |
-| Chunking strategy is known | Done |
-| Retrieval/reranking strategy is known | Done |
-| VPS resource constraints are reflected | Done |
-| Quiz attempts excluded from global RAG | Done |
-| PDF/file extraction deferred | Done |
+| Criterion                                | Status |
+| ---------------------------------------- | -----: |
+| Every ingestion source is known          |   Done |
+| Every v1 source has a stable ID strategy |   Done |
+| Production API URL is known              |   Done |
+| Protected API auth method is known       |   Done |
+| Frontend API contract is known           |   Done |
+| Webhook contract is known                |   Done |
+| Chunking strategy is known               |   Done |
+| Retrieval/reranking strategy is known    |   Done |
+| VPS resource constraints are reflected   |   Done |
+| Quiz attempts excluded from global RAG   |   Done |
+| PDF/file extraction deferred             |   Done |
 
 ---
 

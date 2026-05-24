@@ -39,8 +39,8 @@ ps:
 	$(COMPOSE) ps
 
 health:
-	@curl -fsS http://localhost:8000/health && echo
-	@curl -fsS http://localhost:8000/health/ready && echo
+	@curl -fsS http://localhost:8002/health && echo
+	@curl -fsS http://localhost:8002/health/ready && echo
 
 pull-models:
 	$(COMPOSE) exec ollama ollama pull qwen2.5:3b
