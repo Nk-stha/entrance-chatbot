@@ -1,14 +1,28 @@
 services:
   backend:
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 2g
-        reservations:
-          cpus: "0.5"
-          memory: 512m
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    container_name: entrance-chatbot-backend
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:8002:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+      ollama:
+        condition: service_started
+    networks:
+      - entrance-chatbot-network
     restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-1}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     logging:
       driver: json-file
       options:
@@ -16,14 +30,18 @@ services:
         max-file: "3"
 
   chromadb:
-    deploy:
-      resources:
-        limits:
-          cpus: "1.5"
-          memory: 1536m
-        reservations:
-          cpus: "0.25"
-          memory: 512m
+    image: chromadb/chroma:0.5.23
+    container_name: entrance-chatbot-chromadb
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    expose:
+      - "8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    networks:
+      - entrance-chatbot-network
     restart: unless-stopped
     logging:
       driver: json-file
@@ -32,15 +50,21 @@ services:
         max-file: "3"
 
   redis:
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512m
-        reservations:
-          cpus: "0.1"
-          memory: 128m
+    image: redis:7-alpine
+    container_name: entrance-chatbot-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - entrance-chatbot-network
     restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 384mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     logging:
       driver: json-file
       options:
@@ -48,17 +72,30 @@ services:
         max-file: "3"
 
   ollama:
-    deploy:
-      resources:
-        limits:
-          cpus: "3.0"
-          memory: 3584m
-        reservations:
-          cpus: "1.0"
-          memory: 1g
+    image: ollama/ollama:latest
+    container_name: entrance-chatbot-ollama
+    expose:
+      - "11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - entrance-chatbot-network
     restart: unless-stopped
     logging:
       driver: json-file
       options:
         max-size: "20m"
         max-file: "3"
+
+networks:
+  entrance-chatbot-network:
+    name: entrance-chatbot-network
+    driver: bridge
+
+volumes:
+  chroma-data:
+    name: entrance-chatbot-chroma-data
+  redis-data:
+    name: entrance-chatbot-redis-data
+  ollama-data:
+    name: entrance-chatbot-ollama-data

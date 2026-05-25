@@ -571,8 +571,8 @@ Required GitHub Secrets:
 | Secret | Purpose |
 | :--- | :--- |
 | `VPS_HOST` | VPS IP/domain |
-| `VPS_USER` | SSH user, e.g. `deploy` |
-| `VPS_SSH_KEY` | Private SSH key for deploy user |
+| `VPS_USER` | SSH user, e.g. `root` or `deploy` |
+| `VPS_PASSWORD` | SSH password for the VPS user |
 | `CHATBOT_ADMIN_API_KEY` | Same as VPS `.env.production` `API_KEY`, used for post-deploy checks if needed |
 
 Example deploy workflow:
@@ -597,7 +597,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
             set -euo pipefail
             cd /opt/entrance-chatbot

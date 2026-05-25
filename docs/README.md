@@ -34,6 +34,7 @@ phase/          # Phase-by-phase implementation explanations
 | [Frontend Integration Guide](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/frontend-integration.md) | Existing frontend integration examples and SSE handling |
 | [Chatbot QA Question Pack](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/chatbot_qa_question_pack.md) | Relevant, irrelevant, complex, and tricky test questions with curl examples |
 | [VPS CI/CD Deployment Plan](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/vps-cicd-deployment-plan.md) | Production-ready CI/CD plan for deploying the Docker Compose chatbot stack to a VPS |
+| [Production CI/CD Setup Checklist](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/production-cicd-setup-checklist.md) | Exact GitHub secrets, VPS files, first deploy steps, Nginx setup, and post-deploy checks |
 | [Final Deployment Checklist](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/final-deployment-checklist.md) | Staging/production readiness checklist |
 | [Postman Collection](file:///home/rohan-shrestha/Desktop/entrance-gateway/entrance-chatbot/docs/postman_collection.json) | Optional Postman collection for API testing |
 

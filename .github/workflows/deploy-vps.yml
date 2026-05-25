@@ -1,0 +1,53 @@
+name: Deploy Chatbot to VPS
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Publish Backend Image
+    branches:
+      - main
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script_stop: true
+          script: |
+            set -Eeuo pipefail
+
+            APP_DIR="${APP_DIR:-/opt/entrance-chatbot}"
+            REPO_URL="${REPO_URL:-https://github.com/${{ github.repository }}.git}"
+            BRANCH="${BRANCH:-main}"
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              mkdir -p "$APP_DIR"
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            chmod +x scripts/deploy-vps.sh scripts/backup-vps.sh
+            APP_DIR="$APP_DIR" scripts/deploy-vps.sh
