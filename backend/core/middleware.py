@@ -73,7 +73,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if request.url.path.endswith("/health") or request.url.path.endswith("/readiness"):
+        rate_limit_exempt_paths = {
+            "/api/v1/chat",
+            "/api/v1/chat/stream",
+        }
+        if (
+            request.url.path in rate_limit_exempt_paths
+            or request.url.path.endswith("/health")
+            or request.url.path.endswith("/readiness")
+        ):
             return await call_next(request)
 
         identifier = request.client.host if request.client else "unknown"
