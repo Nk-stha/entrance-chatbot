@@ -16,10 +16,16 @@ def test_admin_rejects_wrong_api_key(api_client: TestClient) -> None:
     assert body["error"]["message"] == "Invalid admin API key"
 
 
-def test_admin_accepts_configured_api_key(api_client: TestClient, admin_headers: dict[str, str]) -> None:
+def test_admin_accepts_configured_api_key(api_client: TestClient, admin_headers: dict[str, str], monkeypatch) -> None:
+    from unittest.mock import Mock
+
+    vector_store = Mock()
+    vector_store.stats.return_value = {"collection": "entrance_knowledge", "count": 42}
+    monkeypatch.setattr("api.admin.VectorStore", lambda: vector_store)
+
     response = api_client.get("/api/v1/admin/stats", headers=admin_headers)
     assert response.status_code == 200
-    assert "collection" in response.json()
+    assert response.json()["collection"] == "entrance_knowledge"
 
 
 def test_validation_error_is_sanitized(api_client: TestClient) -> None:
