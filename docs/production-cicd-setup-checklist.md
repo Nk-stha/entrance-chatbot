@@ -142,10 +142,17 @@ Your current VPS already uses these host ports:
 3000, 3100, 5000, 6030, 8080, 9000, 9001, 9090, 9443
 ```
 
-This chatbot production compose uses only:
+This chatbot production compose temporarily exposes the backend on VPS port `8002` for direct IP access:
 
 ```text
-127.0.0.1:8002 -> chatbot backend container 8000
+0.0.0.0:8002 -> chatbot backend container 8000
+```
+
+You can access:
+
+```text
+http://YOUR_VPS_IP:8002/health
+http://YOUR_VPS_IP:8002/api/v1/chat
 ```
 
 Before deploy:
@@ -311,7 +318,7 @@ Do not enable automatic deploy until these are true:
 - [ ] VPS can pull GHCR image
 - [ ] `.env.production` has no placeholder values
 - [ ] `scripts/deploy-vps.sh` passes manually
-- [ ] Nginx proxies to `127.0.0.1:8002`
+- [ ] Backend is reachable at `http://YOUR_VPS_IP:8002/health` while direct VPS/IP access is needed
 - [ ] HTTPS works
 - [ ] Ollama models are pulled
 - [ ] `/admin/refresh` completed once
