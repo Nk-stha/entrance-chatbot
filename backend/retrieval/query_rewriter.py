@@ -34,6 +34,9 @@ class QueryRewriter:
         original = query.strip()
         if not original:
             raise ValueError("query must not be empty")
+            
+        if not self.settings.enable_query_rewriter:
+            return original
 
         prompt = f"""Rewrite the user's question into a highly effective search query for a vector database.
 Focus on extracting key entities, course names (e.g., BCA, CSIT), exams (e.g., IOE, CMAT), colleges, and subjects.

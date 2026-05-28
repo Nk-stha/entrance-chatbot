@@ -43,8 +43,9 @@ class Settings(BaseSettings):
 
     uvicorn_workers: int = Field(default=1, ge=1, le=2, alias="UVICORN_WORKERS")
     max_chat_history_messages: int = Field(default=5, ge=0, le=50, alias="MAX_CHAT_HISTORY_MESSAGES")
-    retrieval_dense_top_k: int = Field(default=20, ge=1, le=100, alias="RETRIEVAL_DENSE_TOP_K")
-    retrieval_keyword_top_k: int = Field(default=20, ge=1, le=100, alias="RETRIEVAL_KEYWORD_TOP_K")
+    enable_query_rewriter: bool = Field(default=False, alias="ENABLE_QUERY_REWRITER")
+    retrieval_dense_top_k: int = Field(default=10, ge=1, le=100, alias="RETRIEVAL_DENSE_TOP_K")
+    retrieval_keyword_top_k: int = Field(default=10, ge=1, le=100, alias="RETRIEVAL_KEYWORD_TOP_K")
     retrieval_final_top_k: int = Field(default=5, ge=1, le=20, alias="RETRIEVAL_FINAL_TOP_K")
     retrieval_min_relevance_score: float = Field(default=0.15, ge=0.0, le=1.0, alias="RETRIEVAL_MIN_RELEVANCE_SCORE")
     chunk_size_chars: int = Field(default=600, ge=100, le=4000, alias="CHUNK_SIZE_CHARS")
