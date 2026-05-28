@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     backend_api_page_size: int = Field(default=100, ge=1, le=500, alias="BACKEND_API_PAGE_SIZE")
 
     ollama_base_url: str = Field(default="http://ollama:11434", alias="OLLAMA_BASE_URL")
-    ollama_model: str = Field(default="qwen2.5:3b", min_length=1, alias="OLLAMA_MODEL")
+    ollama_model: str = Field(default="qwen2.5:1.5b", min_length=1, alias="OLLAMA_MODEL")
     ollama_embed_model: str = Field(default="nomic-embed-text", min_length=1, alias="OLLAMA_EMBED_MODEL")
 
     chroma_host: str = Field(default="chromadb", min_length=1, alias="CHROMA_HOST")

@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="89fbdc00-e508-4463-8a06-d875f4b85277" name="Changes" comment="git add backend/generation/prompt_builder.py backend/retrieval/retriever.py backend/retrieval/vector_store.py&#10;git commit -m &quot;feat: add KNN clustering and allow conversational greetings&#10;&#10;- retrieval: add `get_clusters` method to VectorStore and Retriever to group similar document chunks using ChromaDB embeddings.&#10;- generation: update LLM system prompt to natively handle basic chit-chat/greetings (e.g. 'hi', 'hello') without falling back to the strict RAG refusal message.&quot;" />
+    <list default="true" id="89fbdc00-e508-4463-8a06-d875f4b85277" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/generation/llm_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/generation/llm_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/generation/prompt_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/generation/prompt_builder.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -250,7 +254,7 @@
       <workItem from="1779969148850" duration="56000" />
       <workItem from="1779969221218" duration="236000" />
       <workItem from="1779979187196" duration="83000" />
-      <workItem from="1779979283648" duration="1853000" />
+      <workItem from="1779979283648" duration="3139000" />
     </task>
     <task id="LOCAL-00001" summary="git add backend/generation/prompt_builder.py backend/retrieval/retriever.py backend/retrieval/vector_store.py&#10;git commit -m &quot;feat: add KNN clustering and allow conversational greetings&#10;&#10;- retrieval: add `get_clusters` method to VectorStore and Retriever to group similar document chunks using ChromaDB embeddings.&#10;- generation: update LLM system prompt to natively handle basic chit-chat/greetings (e.g. 'hi', 'hello') without falling back to the strict RAG refusal message.&quot;">
       <option name="closed" value="true" />
