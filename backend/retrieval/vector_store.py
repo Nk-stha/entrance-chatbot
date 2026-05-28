@@ -73,6 +73,35 @@ class VectorStore:
             logger.warning("chroma_chunks_upsert_failed", count=len(chunks), error=str(exc))
             raise ExternalServiceError("ChromaDB chunk upsert failed") from exc
 
+    def get_clusters(self, chunks: list[DocumentChunk], embeddings: list[list[float]], n_neighbors: int = 5) -> list[list[DocumentChunk]]:
+        """Get clusters of similar chunks from the vector store."""
+
+        if not chunks:
+            return []
+
+        collection = self.get_collection()
+        query_embeddings = embeddings
+        results = collection.query(
+            query_embeddings=query_embeddings,
+            n_results=n_neighbors,
+            include=["documents", "metadatas"],
+        )
+
+        clusters = []
+        for result in results["metadatas"]:
+            cluster = []
+            for metadata in result:
+                chunk = DocumentChunk(
+                    id=metadata["chunk_id"],
+                    document_id=metadata["document_id"],
+                    content=metadata["content"],
+                    metadata=metadata,
+                )
+                cluster.append(chunk)
+            clusters.append(cluster)
+
+        return clusters
+
     def delete_by_source_id(self, source_id: str) -> None:
         """Delete all chunks for a source id."""
 

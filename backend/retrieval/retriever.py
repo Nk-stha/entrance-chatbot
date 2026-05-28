@@ -5,6 +5,7 @@ from typing import Any
 from config import Settings, get_settings
 from core.logging import get_logger
 from ingestion.embedder import OllamaEmbedder
+from models.domain import DocumentChunk
 from retrieval.query_rewriter import QueryRewriter
 from retrieval.reranker import RRFReranker
 from retrieval.types import RetrievalCandidate, RetrievalFilters, RetrievalResult
@@ -129,6 +130,19 @@ class Retriever:
             filtered_count=len(output),
         )
         return RetrievalResult(query=original, rewritten_query=rewritten, candidates=output)
+
+    async def get_clusters(
+        self,
+        chunks: list[DocumentChunk],
+        n_neighbors: int = 5,
+    ) -> list[list[DocumentChunk]]:
+        """Get clusters of similar chunks."""
+
+        if not chunks:
+            return []
+
+        embeddings = await self.embedder.embed_chunks(chunks)
+        return self.vector_store.get_clusters(chunks, embeddings, n_neighbors)
 
     async def dense_search(
         self,

@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="89fbdc00-e508-4463-8a06-d875f4b85277" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/backend/generation/prompt_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/generation/prompt_builder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/retrieval/retriever.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/retrieval/retriever.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/retrieval/vector_store.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/retrieval/vector_store.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotChats">
+    <option name="panelChat">
+      <chat>
+        <option name="activeSessionId" value="2404b080-eb04-4b12-91b4-9b67761e177f" />
+        <option name="sessions">
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="2404b080-eb04-4b12-91b4-9b67761e177f" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="status" value="Completed" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="4303ebc4-e028-4b8a-ad7b-5952e81b7ef1" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="auto" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="ec572ef5-8d74-4dbd-bc88-3b05ca4c51e7" />
+            <option name="modeId" value="file:///c%3A/snapshot/cls-source/dist/assets/agents/Plan.agent.md" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="auto" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="277d26db-3a6a-425e-bbd3-e7f9ebd4ede7" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+        </option>
+        <option name="type" value="PANEL" />
+      </chat>
+    </option>
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/Dell/IdeaProjects/entrance-chatbot" value="3E2Vyqd9icaZNzIVbfwtr40i3UT" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedModel">
+    <selectedModels>
+      <entry key="agent-panel" value="GPT-5.2-Codex" />
+      <entry key="chat-panel" value="GPT-5.2-Codex" />
+    </selectedModels>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;BhandariJN&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Nk-stha/entrance-chatbot.git",
+    "accountId": "746f36db-168f-4b0d-b070-e0971b4adbc9"
+  }
+}]]></component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.5987393523094644" />
+      <entry key="MS500" value="1.9025007274624302" />
+      <entry key="S2" value="1.9746796308915489" />
+      <entry key="S5" value="1.9897938614695403" />
+      <entry key="S10" value="1.9948838444467016" />
+      <entry key="S30" value="2.014375333399454" />
+      <entry key="S60" value="3.0342451599384623" />
+      <entry key="M2" value="10.412408194599934" />
+      <entry key="M5" value="31.70327377977321" />
+      <entry key="M10" value="47.26336148827404" />
+      <entry key="M15" value="54.091047923047384" />
+      <entry key="M30" value="61.95110319860958" />
+      <entry key="H1" value="66.31627815749115" />
+      <entry key="H2" value="68.6169032133284" />
+      <entry key="H4" value="69.79795992076362" />
+      <entry key="D1" value="70.79818703529529" />
+      <entry key="W1" value="70.97113329670835" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="8.594009413532491E-204" />
+      <entry key="S2" value="1.7189879948201176E-51" />
+      <entry key="S5" value="5.477576077688273E-21" />
+      <entry key="S10" value="9.35212005304815E-11" />
+      <entry key="S30" value="6.980967842892185E-4" />
+      <entry key="S60" value="0.037209015260834366" />
+      <entry key="M2" value="0.27250818291122464" />
+      <entry key="M5" value="0.9008641725829833" />
+      <entry key="M10" value="1.3422278021537213" />
+      <entry key="M15" value="1.5330514279023535" />
+      <entry key="M30" value="1.7510208298185788" />
+      <entry key="H1" value="1.871372064721473" />
+      <entry key="H2" value="1.9346167382290707" />
+      <entry key="H4" value="1.9670365798380298" />
+      <entry key="D1" value="1.9944679630139193" />
+      <entry key="W1" value="1.9992087700539631" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.403541599022864" />
+      <entry key="MS500" value="1.8490771587780783" />
+      <entry key="S2" value="1.96043722444797" />
+      <entry key="S5" value="1.984022067407995" />
+      <entry key="S10" value="1.9919853249784787" />
+      <entry key="S30" value="2.014074701613659" />
+      <entry key="S60" value="3.070151677397514" />
+      <entry key="M2" value="10.68162651859352" />
+      <entry key="M5" value="32.59996546427592" />
+      <entry key="M10" value="48.60249280551856" />
+      <entry key="M15" value="55.62174308149698" />
+      <entry key="M30" value="63.70077892494842" />
+      <entry key="H1" value="68.18693152737588" />
+      <entry key="H2" value="70.55114847372988" />
+      <entry key="H4" value="71.76480765179393" />
+      <entry key="D1" value="72.79262308487573" />
+      <entry key="W1" value="72.97033749687002" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3E2Vyqd9icaZNzIVbfwtr40i3UT" />
+  <component name="ProjectSessionTemplates">
+    <option name="panelTemplate">
+      <template>
+        <option name="modeId" value="Agent" />
+        <option name="model">
+          <model>
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+          </model>
+        </option>
+        <option name="targetType" value="LOCAL" />
+      </template>
+    </option>
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Dell/IdeaProjects/entrance-chatbot&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="entrance-chatbot" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="false" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/backend/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-37e91769500f-intellij.indexing.shared.core-IU-261.24374.151" />
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-IU-261.24374.151" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="89fbdc00-e508-4463-8a06-d875f4b85277" name="Changes" comment="" />
+      <created>1779376909791</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1779376909791</updated>
+      <workItem from="1779376913340" duration="1247000" />
+      <workItem from="1779379841175" duration="939000" />
+      <workItem from="1779539966155" duration="46000" />
+      <workItem from="1779540021089" duration="1361000" />
+      <workItem from="1779542374566" duration="472000" />
+      <workItem from="1779633262642" duration="2343000" />
+      <workItem from="1779676080885" duration="321000" />
+      <workItem from="1779676506204" duration="803000" />
+      <workItem from="1779712776782" duration="102000" />
+      <workItem from="1779712898450" duration="4443000" />
+      <workItem from="1779717558111" duration="19000" />
+      <workItem from="1779717751166" duration="14000" />
+      <workItem from="1779849121620" duration="1897000" />
+      <workItem from="1779968745970" duration="383000" />
+      <workItem from="1779969148850" duration="56000" />
+      <workItem from="1779969221218" duration="236000" />
+      <workItem from="1779979187196" duration="83000" />
+      <workItem from="1779979283648" duration="1587000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
