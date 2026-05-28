@@ -14,7 +14,8 @@ def settings() -> Settings:
         BACKEND_API_BASE_URL="https://api.entrancegateway.com/api/v1",
         CHATBOT_BACKEND_JWT="test.jwt.token",
         API_KEY="test-admin-api-key",
-        RETRIEVAL_TOP_K=3,
+        RETRIEVAL_FINAL_TOP_K=3,
+        ENABLE_QUERY_REWRITER=True,
     )
 
 
