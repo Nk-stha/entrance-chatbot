@@ -58,8 +58,11 @@ SOURCE_ENDPOINTS: dict[SourceType, SourceEndpoint] = {
     ),
     SourceType.OLD_QUESTION: SourceEndpoint(
         source_type=SourceType.OLD_QUESTION,
-        path="/old-question-collections/questions",
-        response_shape=ResponseShape.SPRING_PAGE,
+        # The collection list endpoint is /old-question-collections. Appending
+        # /questions makes Spring parse "questions" as the {oldQuestionId} path
+        # variable and reject the request with 400 Invalid Parameter.
+        path="/old-question-collections",
+        response_shape=ResponseShape.API_PAGE,
         id_field="id",
         default_sort_by=None,
         default_sort_dir="desc",
