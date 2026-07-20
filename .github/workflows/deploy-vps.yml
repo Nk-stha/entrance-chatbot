@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: production-vps-deploy
@@ -28,13 +29,14 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || github.token }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          envs: GHCR_USERNAME,GHCR_TOKEN
+          envs: GHCR_USERNAME,GHCR_TOKEN,GITHUB_REPOSITORY_OWNER
           script_stop: true
           script: |
             set -Eeuo pipefail
@@ -42,9 +44,13 @@ jobs:
             APP_DIR="${APP_DIR:-/opt/entrance-chatbot}"
             REPO_URL="${REPO_URL:-https://github.com/${{ github.repository }}.git}"
             BRANCH="${BRANCH:-main}"
+            GHCR_USERNAME="${GHCR_USERNAME:-$GITHUB_REPOSITORY_OWNER}"
 
             if [ -n "${GHCR_TOKEN:-}" ]; then
-              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+              if ! echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin; then
+                echo "Failed to log in to ghcr.io as $GHCR_USERNAME. Check GHCR_TOKEN read:packages access and package visibility." >&2
+                exit 1
+              fi
             else
               echo "GHCR_TOKEN is not set; continuing without ghcr.io login"
             fi
