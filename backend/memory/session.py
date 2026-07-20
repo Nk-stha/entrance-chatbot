@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -125,13 +126,31 @@ class SessionMemory:
         return f"rag:session:{cleaned}"
 
 
+_HISTORY_CITATION_PATTERN = re.compile(r"\s*\[\d+\]")
+
+
+def strip_citations(text: str) -> str:
+    """Remove citation markers from a past assistant answer.
+
+    Source numbers are assigned per turn: [1] in the previous answer refers to a
+    different chunk than [1] in the current context. Carrying the old markers
+    into history lets the model copy a previous answer verbatim and have it pass
+    citation validation against unrelated sources, because the numbers happen to
+    exist in the new numbering too.
+    """
+
+    return _HISTORY_CITATION_PATTERN.sub("", text).strip()
+
+
 def format_messages_for_prompt(messages: list[ChatMessage]) -> str:
-    """Format recent messages for inclusion in a generation prompt."""
+    """Format recent messages as background context for a generation prompt."""
 
     if not messages:
         return ""
-    lines = ["Recent conversation history:"]
+    lines: list[str] = []
     for message in messages:
-        label = "User" if message.role == "user" else "Assistant"
-        lines.append(f"{label}: {message.content}")
+        if message.role == "user":
+            lines.append(f"User: {message.content}")
+        else:
+            lines.append(f"Assistant: {strip_citations(message.content)}")
     return "\n".join(lines)

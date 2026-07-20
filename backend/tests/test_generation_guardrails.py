@@ -71,7 +71,7 @@ def test_build_prompt_keeps_bulk_instructions_out_of_the_variable_prompt() -> No
     # The trailing reminder is one line, not the old ten-bullet instruction block.
     trailing = bundle.user_prompt.split("</question>")[-1].strip()
     assert trailing.count("\n") == 0
-    assert len(trailing) < 200
+    assert len(trailing) < 320
 
 
 def test_build_prompt_validates_input() -> None:

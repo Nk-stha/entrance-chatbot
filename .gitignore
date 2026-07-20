@@ -16,4 +16,5 @@ ollama-data/
 .DS_Store
 
 .claude-flow/
-image/
+/image
+/CHATBOT_WORKFLOW.md

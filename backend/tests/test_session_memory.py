@@ -130,21 +130,48 @@ def test_format_messages_for_prompt() -> None:
         ChatMessage(role="assistant", content="BCA is Bachelor in Computer Application [1]."),
     ])
 
-    assert "Recent conversation history:" in history
     assert "User: What is BCA?" in history
     assert "Assistant: BCA is Bachelor" in history
 
 
-def test_build_prompt_includes_recent_history() -> None:
+def test_history_strips_stale_citation_markers() -> None:
+    """Source numbers are per-turn: [1] last turn is a different chunk this turn.
+
+    Leaving them in history let the model copy a previous answer verbatim and
+    still pass citation validation, because the numbers exist in the new
+    context too - the "asked about CSIT, got the BCA answer" bug.
+    """
+
+    history = format_messages_for_prompt([
+        ChatMessage(role="user", content="what is bca semester 1 syllabus"),
+        ChatMessage(
+            role="assistant",
+            content="BCA semester 1 includes Computer Fundamentals [1], System Analysis [2][3].",
+        ),
+    ])
+
+    assert "[1]" not in history
+    assert "[2]" not in history
+    assert "[3]" not in history
+    assert "Computer Fundamentals" in history
+    # The user's own message is left untouched.
+    assert "what is bca semester 1 syllabus" in history
+
+
+def test_build_prompt_fences_history_away_from_context() -> None:
     prompt = build_prompt(
         "Tell me more",
         [candidate()],
-        recent_history="User: What is BCA?\nAssistant: BCA is Bachelor in Computer Application [1].",
+        recent_history="User: What is BCA?\nAssistant: BCA is Bachelor in Computer Application.",
     )
 
-    assert "Recent history:" in prompt.user_prompt
+    assert "<history>" in prompt.user_prompt
+    assert "</history>" in prompt.user_prompt
     assert "Assistant: BCA is Bachelor" in prompt.user_prompt
     assert "<question>\nTell me more\n</question>" in prompt.user_prompt
+    # History must be fenced off before the evidence block begins.
+    assert prompt.user_prompt.index("</history>") < prompt.user_prompt.index("<context>")
+    assert "never copy facts from them" in prompt.user_prompt
 
 
 def test_chat_message_validates_role_and_content() -> None:

@@ -141,7 +141,13 @@ def build_prompt(
     logger.info("prompt_build_started", query_length=len(cleaned_query), source_count=len(source_map))
 
     context = format_numbered_sources(selected)
-    history_block = f"Recent history:\n{recent_history.strip()}\n\n" if recent_history.strip() else ""
+    # History is fenced in its own tag so the model cannot mistake a previous
+    # answer for retrieved evidence. Without the fence a 3B model copies the
+    # prior answer instead of reading <context> - the "asked about CSIT, got the
+    # BCA answer again" failure.
+    history_block = (
+        f"<history>\n{recent_history.strip()}\n</history>\n\n" if recent_history.strip() else ""
+    )
     # Variable content only. Anything static belongs in SYSTEM_PROMPT so that it
     # stays inside Ollama's cached prefix.
     # One short reminder stays here, immediately before the generation point.
@@ -157,7 +163,7 @@ def build_prompt(
 {cleaned_query}
 </question>
 
-Answer the question using the sources above, in your own words. End each factual sentence with its source number, like [1]."""
+Answer the <question> using only the numbered sources in <context>, in your own words. Earlier turns in <history> are background for understanding follow-ups - never copy facts from them. End each factual sentence with its source number, like [1]."""
 
     logger.info("prompt_build_finished", source_count=len(source_map), prompt_length=len(user_prompt))
     return PromptBundle(system_prompt=SYSTEM_PROMPT, user_prompt=user_prompt, source_map=source_map)
