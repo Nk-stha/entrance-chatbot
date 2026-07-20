@@ -96,18 +96,29 @@ def fallback_answer(intent: Intent) -> str:
     return FALLBACK_GREETING if intent == Intent.GREETING else FALLBACK_SMALL_TALK
 
 
-SYSTEM_PROMPT = """You are the Entrance Gateway AI, an expert academic assistant for students in Nepal.
-Your primary task is to answer the user's question using ONLY the provided numbered sources.
+# Every static instruction lives here rather than in the user prompt.
+#
+# Two measured reasons:
+#  * Refusal bias. The previous prompt gave eight separate directives to refuse
+#    or discard sources, which drove a 3B model to emit the refusal phrase even
+#    when it had been handed the correct, relevant source. There is now exactly
+#    one refusal rule, stated as the exception rather than the default.
+#  * Prefill cost. Ollama caches the prompt prefix. Static text placed after the
+#    variable <context> block cannot be cached and was re-processed at ~30ms per
+#    token on every request. Keeping it in the constant system prefix removes it
+#    from per-request prefill entirely.
+SYSTEM_PROMPT = """You are the Entrance Gateway AI, an academic assistant for students in Nepal.
 
-Strict Rules:
-1. GREETINGS & CHIT-CHAT: You may respond naturally and politely to basic conversational greetings (e.g., "hi", "hello", "how are you"). Introduce yourself if appropriate.
-2. NO OUTSIDE KNOWLEDGE: For any factual question or request for information, if the sources do not contain the answer, you must reply EXACTLY: "{refusal}"
-3. CITATIONS: You must cite the source for every factual claim. Place the citation at the end of the relevant sentence (e.g., [1] or [1][2]).
-4. TONE & FORMAT: Be extremely concise, maximum 2-3 sentences. Use bullet points if listing items.
-5. HALLUCINATION PREVENTION: Never invent citations. Only use the numbers provided in the context.
-6. STRICT RELEVANCE GATE: If the provided sources are not strictly relevant to the user's specific request, ignore them and state you do not have the information.
-7. RELEVANCE FILTERING: Retrieved sources are candidates, not automatic answers. Include only sources that directly match the user's requested category, topic, or constraint.
-8. FALSE PREMISES: If the user assumes something unsupported, correct it using the sources. For example, do not call a business course computer-related unless the source says it is computer-related.""".format(refusal=REFUSAL_MESSAGE)
+Answer the user's question using the numbered sources given in <context>.
+
+1. GROUND YOUR ANSWER: If the sources address the question, even partially, answer from them. Prefer giving the user what the sources do support over declining.
+2. WRITE, DO NOT COPY: Answer in your own words as a direct reply to the user. Never repeat the source block itself - do not output "Title:", "Content:", or a leading "[n] Title: ..." line.
+3. CITATIONS: Cite every factual claim with its source number, for example [1] or [1][2]. Only use numbers that appear in <context>, and never invent one.
+4. STAY ON TARGET: Answer what was actually asked. Do not present a source as matching a category it does not match - for example, do not describe a business course as computer-related.
+5. TONE AND FORMAT: Be concise. Two or three sentences, or a short bullet list. Use Markdown.
+6. WHEN YOU CANNOT ANSWER: Only if none of the sources address the question, reply with exactly this sentence and nothing else:
+"{refusal}"
+Never combine that sentence with an answer or a citation.""".format(refusal=REFUSAL_MESSAGE)
 
 
 def build_prompt(
@@ -130,9 +141,15 @@ def build_prompt(
     logger.info("prompt_build_started", query_length=len(cleaned_query), source_count=len(source_map))
 
     context = format_numbered_sources(selected)
-    history_block = f"Recent history:\n{recent_history.strip()}\n" if recent_history.strip() else ""
-    user_prompt = f"""{history_block}
-<context>
+    history_block = f"Recent history:\n{recent_history.strip()}\n\n" if recent_history.strip() else ""
+    # Variable content only. Anything static belongs in SYSTEM_PROMPT so that it
+    # stays inside Ollama's cached prefix.
+    # One short reminder stays here, immediately before the generation point.
+    # Measured: with the citation rule only in the distant system prompt, the 3B
+    # model answered without citations on 5/5 runs and every answer was then
+    # rejected by the citation guardrail. Proximity matters more than the ~15
+    # tokens of prefill this costs.
+    user_prompt = f"""{history_block}<context>
 {context if context else 'No sources available.'}
 </context>
 
@@ -140,17 +157,7 @@ def build_prompt(
 {cleaned_query}
 </question>
 
-Instructions:
-- If the <question> is a casual greeting, respond politely without needing sources.
-- For all other questions, analyze the <context> to answer the <question>.
-- Do not forget to include your inline citations (e.g., [1]).
-- Either answer with citations OR refuse with the exact refusal phrase; never do both in the same response (unless continuing after a greeting).
-- Include only sources that are directly relevant to the user's requested category, topic, or constraint.
-- If the provided sources are not strictly relevant to the user's specific request, ignore them and use the exact refusal phrase.
-- If a retrieved source is available but not relevant to the question, do not list it as an answer.
-- If the user asks for computer-related options, do not include business-only sources as computer-related.
-- If the <context> lacks the answer, use your exact refusal phrase.
-- Format your response clearly using Markdown."""
+Answer the question using the sources above, in your own words. End each factual sentence with its source number, like [1]."""
 
     logger.info("prompt_build_finished", source_count=len(source_map), prompt_length=len(user_prompt))
     return PromptBundle(system_prompt=SYSTEM_PROMPT, user_prompt=user_prompt, source_map=source_map)

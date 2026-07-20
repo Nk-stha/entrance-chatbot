@@ -28,16 +28,50 @@ def test_format_numbered_sources_contains_traceability() -> None:
 
 def test_build_prompt_has_strict_context_only_instructions() -> None:
     bundle = build_prompt("What is BCA?", [candidate("course:8:chunk:0")])
-    assert "Your primary task is to answer the user's question using ONLY the provided numbered sources" in bundle.system_prompt
-    assert "STRICT RELEVANCE GATE" in bundle.system_prompt
-    assert "RELEVANCE FILTERING" in bundle.system_prompt
-    assert "FALSE PREMISES" in bundle.system_prompt
+
+    # Grounding rules live in the system prompt.
+    assert "Answer the user's question using the numbered sources given in <context>" in bundle.system_prompt
+    assert "GROUND YOUR ANSWER" in bundle.system_prompt
+    assert "CITATIONS" in bundle.system_prompt
+    assert "STAY ON TARGET" in bundle.system_prompt
+    assert "do not describe a business course as computer-related" in bundle.system_prompt
     assert REFUSAL_MESSAGE in bundle.system_prompt
+
+    # The user prompt carries variable content only.
     assert "<context>" in bundle.user_prompt
     assert "<question>" in bundle.user_prompt
-    assert "do not include business-only sources as computer-related" in bundle.user_prompt
     assert "[1] Title: BCA (course)" in bundle.user_prompt
     assert bundle.source_map[1].chunk_id == "course:8:chunk:0"
+
+
+def test_build_prompt_states_refusal_rule_exactly_once() -> None:
+    """Eight competing refusal directives made a 3B model refuse valid context."""
+
+    bundle = build_prompt("What is BCA?", [candidate("course:8:chunk:0")])
+
+    assert bundle.system_prompt.count(REFUSAL_MESSAGE) == 1
+    assert REFUSAL_MESSAGE not in bundle.user_prompt
+
+
+def test_build_prompt_keeps_bulk_instructions_out_of_the_variable_prompt() -> None:
+    """Bulk instructions belong in the cached system prefix.
+
+    One short citation reminder stays in the user prompt on purpose: with the
+    citation rule only in the distant system prompt, the model omitted citations
+    on 5/5 runs and every answer was rejected by the citation guardrail. The
+    reminder is kept to a single line so prefill cost stays negligible.
+    """
+
+    bundle = build_prompt("What is BCA?", [candidate("course:8:chunk:0")])
+    second = build_prompt(
+        "What is BCA?", [candidate("course:8:chunk:0"), candidate("course:9:chunk:0")]
+    )
+
+    assert bundle.system_prompt == second.system_prompt
+    # The trailing reminder is one line, not the old ten-bullet instruction block.
+    trailing = bundle.user_prompt.split("</question>")[-1].strip()
+    assert trailing.count("\n") == 0
+    assert len(trailing) < 200
 
 
 def test_build_prompt_validates_input() -> None:
