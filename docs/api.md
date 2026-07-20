@@ -63,9 +63,36 @@ Use this for non-streaming JSON chat responses.
   ],
   "session_id": "user-session-123",
   "allowed": true,
-  "reason": "grounded"
+  "reason": "grounded",
+  "intent": "knowledge"
 }
 ```
+
+### Response Fields
+
+| Field | Type | Notes |
+|---|---:|---|
+| `answer` | string | Final guarded answer |
+| `confidence` | number | `1.0` for conversational turns, citation-derived otherwise |
+| `sources` | array | Always `[]` for conversational turns |
+| `allowed` | boolean | `false` when guardrails replaced the answer with the refusal |
+| `reason` | string | `grounded`, `conversational`, `missing_citations`, `invalid_citations`, `no_sources`, `mixed_refusal_answer` |
+| `intent` | string | `knowledge`, `greeting`, or `small_talk` |
+
+### Conversational Turns
+
+Greetings and small talk (`hi`, `good morning`, `namaste`, `how are you`,
+`thank you`) are classified before retrieval and answered directly.
+
+- They **bypass retrieval entirely** — no embedding call, no ChromaDB query.
+- They return `sources: []` and `intent: "greeting"` or `"small_talk"`.
+- Citation guardrails do not apply, so a greeting is never answered with the
+  refusal message.
+
+Classification is deliberately conservative: any message that is not purely
+conversational stays on the grounded RAG path. A greeting prefix does not
+downgrade a real question — `"hi, which colleges offer BCA?"` is classified as
+`knowledge` and must still be answered with citations.
 
 ---
 
@@ -119,10 +146,17 @@ Emitted after generation and guardrail validation.
 
 ```text
 event: sources
-data: {"sources":[{"number":"1","chunk_id":"course:8:chunk:0","document_id":"course:8","source_id":"course:8","source_type":"course","title":"BCA"}],"confidence":0.591,"allowed":true,"reason":"grounded"}
+data: {"sources":[{"number":"1","chunk_id":"course:8:chunk:0","document_id":"course:8","source_id":"course:8","source_type":"course","title":"BCA"}],"confidence":0.591,"allowed":true,"reason":"grounded","intent":"knowledge"}
 ```
 
 Frontend should render these as citations/source cards.
+
+For a conversational turn the event carries an empty source list:
+
+```text
+event: sources
+data: {"sources":[],"confidence":1.0,"allowed":true,"reason":"conversational","intent":"greeting"}
+```
 
 ### `done`
 

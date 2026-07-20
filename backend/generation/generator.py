@@ -9,10 +9,22 @@ from core.exceptions import ExternalServiceError
 from core.logging import get_logger
 from generation.citation import format_source_reference
 from generation.llm_client import OllamaGenerationClient
-from generation.prompt_builder import PromptBundle, REFUSAL_MESSAGE
+from generation.prompt_builder import PromptBundle, REFUSAL_MESSAGE, fallback_answer
 from generation.hallucination import guard_answer
 
 logger = get_logger(__name__)
+
+
+def failure_message(prompt: PromptBundle) -> str:
+    """Message to surface when generation fails.
+
+    A failed greeting degrades to a friendly canned reply; a failed knowledge
+    query still degrades to the strict refusal so nothing ungrounded escapes.
+    """
+
+    if prompt.intent.is_conversational:
+        return fallback_answer(prompt.intent)
+    return REFUSAL_MESSAGE
 
 
 @dataclass(slots=True)
@@ -67,7 +79,7 @@ class StreamingAnswerGenerator:
             raise
         except Exception as exc:
             logger.warning("generation_stream_error", error=str(exc))
-            yield SSEEvent("error", {"message": REFUSAL_MESSAGE}).format()
+            yield SSEEvent("error", {"message": failure_message(prompt)}).format()
 
     async def stream_sse_with_result(self, prompt: PromptBundle) -> AsyncIterator[tuple[str, StreamingResult | None]]:
         """Yield formatted SSE events and expose the final answer for persistence."""
@@ -97,8 +109,9 @@ class StreamingAnswerGenerator:
             raise
         except Exception as exc:
             logger.warning("generation_stream_error", error=str(exc))
-            result = StreamingResult(answer=REFUSAL_MESSAGE, confidence=0.0, allowed=False, reason="error")
-            yield SSEEvent("error", {"message": REFUSAL_MESSAGE}).format(), result
+            message = failure_message(prompt)
+            result = StreamingResult(answer=message, confidence=0.0, allowed=False, reason="error")
+            yield SSEEvent("error", {"message": message}).format(), result
 
     async def _stream_events(self, prompt: PromptBundle) -> AsyncIterator[SSEEvent]:
         answer_parts: list[str] = []
@@ -120,7 +133,7 @@ class StreamingAnswerGenerator:
                 except StopAsyncIteration:
                     break
                 except ExternalServiceError:
-                    yield SSEEvent("error", {"message": REFUSAL_MESSAGE})
+                    yield SSEEvent("error", {"message": failure_message(prompt)})
                     return
 
                 pending_chunk = asyncio.create_task(stream.__anext__())
@@ -137,15 +150,20 @@ class StreamingAnswerGenerator:
             if not pending_chunk.done():
                 pending_chunk.cancel()
 
-        guarded = guard_answer("".join(answer_parts), prompt.source_map)
+        guarded = guard_answer("".join(answer_parts), prompt.source_map, intent=prompt.intent)
         yield SSEEvent(
             "sources",
             {
-                "sources": guarded.citation_validation.sources
+                # A conversational turn has no retrieved sources by design, so it
+                # must not fall back to listing the (empty) prompt source map.
+                "sources": []
+                if prompt.intent.is_conversational
+                else guarded.citation_validation.sources
                 or [format_source_reference(number, candidate) for number, candidate in prompt.source_map.items()],
                 "confidence": guarded.confidence,
                 "allowed": guarded.allowed,
                 "reason": guarded.reason,
+                "intent": prompt.intent.value,
             },
         )
         yield SSEEvent("done", {"answer": guarded.answer, "confidence": guarded.confidence})
