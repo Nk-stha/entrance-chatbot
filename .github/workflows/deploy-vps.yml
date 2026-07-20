@@ -31,12 +31,12 @@ jobs:
         env:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || github.token }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GHCR_DEFAULT_USERNAME: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          envs: GHCR_USERNAME,GHCR_TOKEN,GITHUB_REPOSITORY_OWNER
+          envs: GHCR_USERNAME,GHCR_TOKEN,GHCR_DEFAULT_USERNAME
           script_stop: true
           script: |
             set -Eeuo pipefail
@@ -44,7 +44,7 @@ jobs:
             APP_DIR="${APP_DIR:-/opt/entrance-chatbot}"
             REPO_URL="${REPO_URL:-https://github.com/${{ github.repository }}.git}"
             BRANCH="${BRANCH:-main}"
-            GHCR_USERNAME="${GHCR_USERNAME:-$GITHUB_REPOSITORY_OWNER}"
+            GHCR_USERNAME="${GHCR_USERNAME:-$GHCR_DEFAULT_USERNAME}"
 
             if [ -n "${GHCR_TOKEN:-}" ]; then
               if ! echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin; then
