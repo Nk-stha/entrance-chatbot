@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from config import Settings, get_settings
 from core.logging import get_logger
+from core.timing import stage
 from ingestion.embedder import OllamaEmbedder
 from models.domain import DocumentChunk
 from retrieval.query_rewriter import QueryRewriter
@@ -110,17 +112,29 @@ class Retriever:
 
         final_top_k = top_k or self.settings.retrieval_final_top_k
         logger.info("retrieval_started", query_length=len(original), top_k=final_top_k)
-        rewritten = await self.query_rewriter.rewrite(original)
+
+        with stage("query_rewrite"):
+            rewritten = await self.query_rewriter.rewrite(original)
         dense_query = rewritten if rewritten else original
-        dense = await self.dense_search(dense_query, filters=filters, top_k=self.settings.retrieval_dense_top_k)
-        keyword = self.keyword_search(original, filters=filters, top_k=self.settings.retrieval_keyword_top_k)
-        fused = self.reranker.rerank([dense, keyword], top_k=max(final_top_k * 2, final_top_k))
-        intent_filtered = apply_intent_relevance_filter(original, fused)
-        threshold_filtered = apply_minimum_relevance_filter(
-            original,
-            intent_filtered,
-            min_score=self.settings.retrieval_min_relevance_score,
-        )
+
+        # Dense and keyword retrieval are independent, so they run concurrently.
+        # Both ultimately call the synchronous ChromaDB client, which is executed
+        # off the event loop so a slow vector query cannot stall other requests
+        # on the single-worker VPS deployment.
+        with stage("hybrid_search"):
+            dense, keyword = await asyncio.gather(
+                self.dense_search(dense_query, filters=filters, top_k=self.settings.retrieval_dense_top_k),
+                self.keyword_search(original, filters=filters, top_k=self.settings.retrieval_keyword_top_k),
+            )
+        with stage("rrf_rerank"):
+            fused = self.reranker.rerank([dense, keyword], top_k=max(final_top_k * 2, final_top_k))
+        with stage("relevance_filters"):
+            intent_filtered = apply_intent_relevance_filter(original, fused)
+            threshold_filtered = apply_minimum_relevance_filter(
+                original,
+                intent_filtered,
+                min_score=self.settings.retrieval_min_relevance_score,
+            )
         output = threshold_filtered[:final_top_k]
         logger.info(
             "retrieval_finished",
@@ -151,28 +165,46 @@ class Retriever:
         filters: RetrievalFilters | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalCandidate]:
-        vector = await self.embedder.embed_text(query)
-        collection = self.vector_store.get_collection()
-        result = collection.query(
-            query_embeddings=[vector],
-            n_results=top_k or self.settings.retrieval_dense_top_k,
-            where=filters.to_chroma_where() if filters else None,
-            include=["documents", "metadatas", "distances"],
-        )
+        with stage("embed_query"):
+            vector = await self.embedder.embed_text(query)
+        with stage("chroma_get_collection"):
+            collection = self.vector_store.get_collection()
+        with stage("chroma_query"):
+            result = await asyncio.to_thread(
+                lambda: collection.query(
+                    query_embeddings=[vector],
+                    n_results=top_k or self.settings.retrieval_dense_top_k,
+                    where=filters.to_chroma_where() if filters else None,
+                    include=["documents", "metadatas", "distances"],
+                )
+            )
         return _query_result_to_candidates(result, retrieval_type="dense")
 
-    def keyword_search(
+    async def keyword_search(
         self,
         query: str,
         *,
         filters: RetrievalFilters | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalCandidate]:
-        collection = self.vector_store.get_collection()
-        result = collection.get(
-            where=filters.to_chroma_where() if filters else None,
-            include=["documents", "metadatas"],
-        )
+        """Keyword-score chunks fetched from ChromaDB.
+
+        NOTE: this fetches the whole (optionally filtered) collection and scores
+        it in Python, so its cost grows linearly with corpus size. It is fine at
+        the current corpus but needs a `where_document` contains-filter or a real
+        BM25 index before the collection grows large. The scan runs off the event
+        loop so it cannot block other requests in the meantime.
+        """
+
+        with stage("chroma_get_collection"):
+            collection = self.vector_store.get_collection()
+        with stage("keyword_full_scan"):
+            result = await asyncio.to_thread(
+                lambda: collection.get(
+                    where=filters.to_chroma_where() if filters else None,
+                    include=["documents", "metadatas"],
+                )
+            )
         terms = [term.lower() for term in query.split() if len(term.strip()) > 1]
         scored: list[RetrievalCandidate] = []
         for chunk_id, document, metadata in zip(result.get("ids", []), result.get("documents", []), result.get("metadatas", []), strict=False):

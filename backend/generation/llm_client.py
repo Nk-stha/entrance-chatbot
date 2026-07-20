@@ -49,7 +49,10 @@ class OllamaGenerationClient:
             "model": self.settings.ollama_model,
             "prompt": prompt,
             "stream": True,
-            "options": {"temperature": 0.2, "num_predict": 150},
+            "options": {
+                "temperature": 0.2,
+                "num_predict": self.settings.ollama_num_predict,
+            },
         }
         logger.info("ollama_generation_stream_started", model=self.settings.ollama_model, prompt_length=len(prompt))
 

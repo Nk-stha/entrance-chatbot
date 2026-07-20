@@ -10,6 +10,8 @@ from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
+from config import get_settings
+
 from core.exceptions import ExternalServiceError
 from generation.generator import StreamingAnswerGenerator, collect_sse_events
 from generation.hallucination import guard_answer
@@ -326,7 +328,11 @@ def test_chat_greeting_bypasses_retrieval_entirely(
         raise AssertionError("Retriever must not be constructed for a greeting")
 
     monkeypatch.setattr("api.chat.Retriever", explode)
-    monkeypatch.setattr("api.chat.OllamaGenerationClient", lambda: FakeLLM("Hello! How can I help?"))
+
+    def no_llm():
+        raise AssertionError("LLM must not be called for a templated greeting")
+
+    monkeypatch.setattr("api.chat.OllamaGenerationClient", no_llm)
 
     response = api_client.post("/api/v1/chat", json={"message": "hi", "session_id": "s1"})
 
@@ -334,9 +340,31 @@ def test_chat_greeting_bypasses_retrieval_entirely(
     body = response.json()
     assert body["intent"] == "greeting"
     assert body["allowed"] is True
-    assert body["answer"] == "Hello! How can I help?"
+    assert body["answer"] == FALLBACK_GREETING
+    assert body["reason"] == "conversational_templated"
     assert body["sources"] == []
     assert REFUSAL_MESSAGE not in body["answer"]
+
+
+def test_chat_greeting_uses_llm_when_explicitly_enabled(
+    api_client: TestClient, no_memory, monkeypatch
+) -> None:
+    """CONVERSATIONAL_USE_LLM=true restores generated greetings."""
+
+    def explode() -> None:
+        raise AssertionError("Retriever must not be constructed for a greeting")
+
+    tuned = get_settings().model_copy(update={"conversational_use_llm": True})
+    monkeypatch.setattr("api.chat.get_settings", lambda: tuned)
+    monkeypatch.setattr("api.chat.Retriever", explode)
+    monkeypatch.setattr("api.chat.OllamaGenerationClient", lambda: FakeLLM("Hello! How can I help?"))
+
+    response = api_client.post("/api/v1/chat", json={"message": "hi", "session_id": "s1"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] == "Hello! How can I help?"
+    assert body["reason"] == "conversational"
 
 
 def test_chat_knowledge_query_runs_retrieval_and_stays_grounded(
@@ -431,17 +459,18 @@ def test_chat_stream_greeting_emits_no_refusal(
         raise AssertionError("Retriever must not be constructed for a greeting")
 
     monkeypatch.setattr("api.chat.Retriever", explode)
-    monkeypatch.setattr(
-        "generation.generator.OllamaGenerationClient",
-        lambda: FakeLLM("Hello! How can I help?"),
-    )
 
     response = api_client.post(
         "/api/v1/chat/stream", json={"message": "hi", "session_id": "s1"}
     )
 
     assert response.status_code == 200
-    assert "Hello! How can I help?" in response.text
+    # The wire contract is unchanged: token -> sources -> done, even though the
+    # reply is templated rather than generated.
+    assert "event: token" in response.text
+    assert "event: sources" in response.text
+    assert response.text.rstrip().endswith("\n\n") or "event: done" in response.text
+    assert FALLBACK_GREETING in response.text
     assert '"intent": "greeting"' in response.text
     assert '"sources": []' in response.text
     assert REFUSAL_MESSAGE not in response.text

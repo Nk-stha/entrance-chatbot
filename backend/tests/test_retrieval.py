@@ -229,14 +229,15 @@ async def test_retriever_returns_fused_results_with_filters() -> None:
     assert vector_store.collection.where_seen == [{"source_type": "course"}, {"source_type": "course"}]
 
 
-def test_keyword_search_scores_matching_documents() -> None:
+@pytest.mark.asyncio
+async def test_keyword_search_scores_matching_documents() -> None:
     retriever = Retriever(
         settings=settings(),
         embedder=FakeEmbedder(),
         vector_store=FakeVectorStore(),
         query_rewriter=FakeRewriter(),
     )
-    results = retriever.keyword_search("BCA application", top_k=3)
+    results = await retriever.keyword_search("BCA application", top_k=3)
     assert len(results) == 1
     assert results[0].chunk_id == "course:8:chunk:0"
     assert results[0].score == 2.0

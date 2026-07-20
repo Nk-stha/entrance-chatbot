@@ -1,5 +1,7 @@
 # Logical Data Flow Diagram - Entrance Chatbot
 
+> Image verification note: `image/logical-dfd.png` has been checked against the current repository implementation. A report-ready verification and explanation is available in `docs/logicaldfd.md`. The image is logically consistent with the implemented learner question-answering, searchable knowledge maintenance, conversation context, synchronization control, admin status, and monitoring workflows, with minor academic clarifications about webhook origin, implicit answer-grounding validation, and monitoring scope.
+
 ## Source Basis and Evidence Limits
 
 This Logical DFD is based only on repository evidence:
@@ -534,4 +536,3 @@ Balanced. Inputs to 3.0 from E3 and E4 are preserved through 3.1. Outputs to E3 
 | 3.1 Receive Status Request | No | No | No | Uses status request; emits routed status query. |
 | 3.2 Check Knowledge Availability | No | No | No | Uses status query and searchable knowledge; emits knowledge status. |
 | 3.3 Check Service Availability | No | No | No | Uses service status query; emits service status metric. |
-

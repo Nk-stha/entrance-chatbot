@@ -1,5 +1,7 @@
 # Physical Data Flow Diagram - Entrance Chatbot
 
+> Image verification note: `image/physicaldfd.png` has been checked against the current repository implementation. A report-ready verification and explanation is available in `docs/physicaldfd.md`. The image is architecturally consistent with the implemented FastAPI, ChromaDB, Redis, Ollama, Java API integration, monitoring, and CI/CD design, with three academic qualifications: Redis is a state store rather than only a cache, "Llama 3" should be read as configurable Ollama answer generation, and "System (Metrics)" is an endpoint output rather than a persistent store.
+
 ## Source Basis and Evidence Limits
 
 This Physical DFD represents the implementation present in this repository. It is based on:
@@ -855,4 +857,3 @@ Balanced. GitHub Actions, GHCR, deployment files, logs, backups, and runtime vol
 - Public chat routes are explicitly exempted from the Redis-backed rate limiter in `RateLimitMiddleware`; other non-health paths are rate limited.
 - Production compose publishes backend port `8002:8000`; Redis, ChromaDB, and Ollama are exposed only to the Docker network in `docker-compose.prod.yml`.
 - Development compose publishes Redis, ChromaDB, and Ollama ports to the host for local development.
-

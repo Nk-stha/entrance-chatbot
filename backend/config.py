@@ -41,6 +41,17 @@ class Settings(BaseSettings):
     rate_limit_window: int = Field(default=60, ge=1, alias="RATE_LIMIT_WINDOW")
     webhook_secret: str = Field(default="", alias="WEBHOOK_SECRET")
 
+    # Generation tuning. On a 4 vCPU VPS qwen2.5:3b decodes at ~11 tokens/sec,
+    # so the output-token ceiling is the dominant latency control.
+    ollama_num_predict: int = Field(default=96, ge=16, le=512, alias="OLLAMA_NUM_PREDICT")
+    # Greetings have no sources and a fixed-shape reply. Generating them costs a
+    # full LLM round trip (~5s measured) and evicts the knowledge prompt from
+    # Ollama's KV cache, so they are answered from a template by default.
+    conversational_use_llm: bool = Field(default=False, alias="CONVERSATIONAL_USE_LLM")
+    # Send one tiny generation at startup so the first real user does not pay
+    # the ~29s model load.
+    warm_model_on_startup: bool = Field(default=True, alias="WARM_MODEL_ON_STARTUP")
+
     uvicorn_workers: int = Field(default=1, ge=1, le=2, alias="UVICORN_WORKERS")
     max_chat_history_messages: int = Field(default=5, ge=0, le=50, alias="MAX_CHAT_HISTORY_MESSAGES")
     enable_query_rewriter: bool = Field(default=False, alias="ENABLE_QUERY_REWRITER")

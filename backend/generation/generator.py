@@ -169,6 +169,30 @@ class StreamingAnswerGenerator:
         yield SSEEvent("done", {"answer": guarded.answer, "confidence": guarded.confidence})
 
 
+def templated_conversational_events(answer: str, intent) -> list[str]:
+    """Render a templated conversational reply in the normal SSE event shape.
+
+    The frontend contract is unchanged: it still receives token -> sources ->
+    done, so a templated greeting is indistinguishable from a generated one on
+    the wire.
+    """
+
+    return [
+        SSEEvent("token", {"token": answer}).format(),
+        SSEEvent(
+            "sources",
+            {
+                "sources": [],
+                "confidence": 1.0,
+                "allowed": True,
+                "reason": "conversational_templated",
+                "intent": intent.value,
+            },
+        ).format(),
+        SSEEvent("done", {"answer": answer, "confidence": 1.0}).format(),
+    ]
+
+
 async def collect_sse_events(generator: AsyncIterator[str]) -> list[str]:
     """Test helper to collect an SSE stream."""
 

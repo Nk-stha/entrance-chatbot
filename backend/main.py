@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import httpx
@@ -18,6 +19,31 @@ configure_logging(settings.log_level)
 logger = get_logger(__name__)
 
 
+async def _warm_ollama_model() -> None:
+    """Load the chat model into RAM at startup.
+
+    A cold Ollama takes ~29s to load qwen2.5:3b, and that cost lands on
+    whichever user happens to send the first message after a deploy. Warming in
+    the background moves it off the request path.
+    """
+
+    try:
+        async with httpx.AsyncClient(base_url=settings.ollama_base_url, timeout=180.0) as client:
+            response = await client.post(
+                "/api/generate",
+                json={
+                    "model": settings.ollama_model,
+                    "prompt": "ok",
+                    "stream": False,
+                    "options": {"num_predict": 1},
+                },
+            )
+            response.raise_for_status()
+        logger.info("ollama_model_warmed", model=settings.ollama_model)
+    except Exception as exc:  # pragma: no cover - best effort, never blocks startup
+        logger.warning("ollama_warmup_failed", model=settings.ollama_model, error=str(exc))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize lightweight shared clients for readiness checks."""
@@ -25,6 +51,8 @@ async def lifespan(app: FastAPI):
     logger.info("app_starting", environment=settings.environment)
     app.state.http_client = httpx.AsyncClient(timeout=5.0)
     app.state.redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    if settings.warm_model_on_startup:
+        app.state.warmup_task = asyncio.create_task(_warm_ollama_model())
     yield
     logger.info("app_stopping")
     await app.state.http_client.aclose()
